@@ -1,0 +1,4 @@
+fastapi==0.95.2
+uvicorn==0.22.0
+elasticsearch==8.9.0
+python-dotenv==1.0.0
