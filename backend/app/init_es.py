@@ -2,7 +2,7 @@ from elasticsearch import Elasticsearch
 import os
 
 es = Elasticsearch(
-    hosts=[os.getenv("ES_HOST", "elasticsearch")],
+    hosts=[f"http://{os.getenv('ES_HOST', 'elasticsearch')}:9200"],
     verify_certs=False
 )
 

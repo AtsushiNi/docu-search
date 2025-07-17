@@ -3,6 +3,10 @@
 ## 概要
 このプロジェクトはFastAPI、React、Elasticsearchを使用した検索アプリケーションです。
 
+以下の方法でドキュメントをElasticsearchに格納できます:
+1. SVNリポジトリ設定: 複数のSVN URLを設定することで、指定したリポジトリ内のドキュメントを自動的に収集・格納
+2. ローカルフォルダ指定: Webインターフェースからローカルフォルダを指定し、その中のドキュメントを格納
+
 ## システム構成
 - バックエンド: FastAPI
 - フロントエンド: React (Ant Design)
@@ -31,3 +35,12 @@ docker-compose up --build
 - 初期データ投入: `docker-compose exec backend python app/init_es.py`
 - バックエンド再起動: `docker-compose restart backend`
 - フロントエンド再ビルド: `docker-compose exec frontend npm run build`
+
+### ドキュメント格納方法
+1. SVNリポジトリ設定:
+   ```bash
+   docker-compose exec backend python app/init_es.py --svn-url <SVN_URL> [--svn-url <SVN_URL2> ...]
+   ```
+2. ローカルフォルダ指定:
+   - フロントエンド(http://localhost:3000)にアクセス
+   - 「ドキュメント追加」メニューからローカルフォルダを選択
