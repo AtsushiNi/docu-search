@@ -77,3 +77,22 @@ class ESService:
                 status_code=500,
                 detail=f"Search failed: {str(e)}"
             )
+
+    def get_url_list(self) -> Dict[str, Any]:
+        """登録されている全ドキュメントのURLリストを取得"""
+        try:
+            return self.es.search(
+                index=self.index_name,
+                body={
+                    "_source": ["url"],
+                    "query": {
+                        "match_all": {}
+                    },
+                    "size": 10000  # 十分大きな数を指定して全件取得
+                }
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to get URL list: {str(e)}"
+            )
