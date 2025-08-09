@@ -17,7 +17,9 @@ class FileConverter:
         """ファイルをマークダウンに変換"""
         try:
             result = self.markitdown.convert(file_path)
-            return result.text_content
+            content = result.text_content.replace(" NaN |", " |") # 変換で生じる無駄なNaNを削除
+            import re
+            return re.sub(r'^\s*\|+\s*(\|\s*)*$\n?', '', content, flags=re.MULTILINE) # 空行を削除
         except Exception as e:
             raise HTTPException(
                 status_code=500,
