@@ -43,5 +43,19 @@ services:
     volumes:
       - ./kibana/config:/usr/share/kibana/config
 
+  subversion:
+    image: subversion:latest
+    container_name: subversion
+    restart: always
+    ports:
+      - "8080:8080"
+      - "3690:3690"
+    volumes:
+      - apache2_conf:/usr/local/apache2/conf     # httpd.confおよびsvn.confの編集の為に必要
+      - subversion_access:/etc/subversion        # subversion-access-controlの編集の為に必要
+      - svn_home:/home/svn                       # ローカルユーザー及びレポジトリの永続化の為に必要
 volumes:
   es_data:
+  apache2_conf:
+  subversion_access:
+  svn_home:
