@@ -15,5 +15,6 @@ docker-compose up --build
 ## アクセスURL
 - フロントエンド: http://localhost:3000
 - API: http://localhost:8000
+    - 設計書: http://localhost:8000/docs
 - Elasticsearch: http://localhost:9200
 - Kibana: http://localhost:5601
