@@ -201,6 +201,7 @@ const FileTree: React.FC<FileTreeProps> = () => {
         onChange={onSearchChange}
       />
       <Tree<TreeNode>
+        selectable={false}
         treeData={processedTreeData}
         expandedKeys={expandedKeys}
         autoExpandParent={autoExpandParent}
@@ -208,10 +209,19 @@ const FileTree: React.FC<FileTreeProps> = () => {
           setExpandedKeys(keys as string[]);
           setAutoExpandParent(false);
         }}
-        onSelect={(_, info) => {
-          const node = info.node as TreeNode;
-          if (node.id) {
+        onClick={(_event, node) => {
+          if (node.isLeaf && node.id) {
+            // 詳細ページに遷移
             window.open(`/documents/${node.id}`, '_blank');
+          } else {
+            // フォルダノードのクリック処理
+            const key = node.key;
+            setExpandedKeys(prev => 
+              prev.includes(key) 
+                ? prev.filter(k => k !== key) // 折り畳み
+                : [...prev, key] // 展開
+            );
+            setAutoExpandParent(false);
           }
         }}
       />
