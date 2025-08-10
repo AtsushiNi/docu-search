@@ -1,6 +1,7 @@
 from elasticsearch import Elasticsearch
 from typing import Dict, Any
 from pydantic_settings import BaseSettings
+import datetime
 
 class ElasticsearchSettings(BaseSettings):
     """Elasticsearch設定クラス"""
@@ -24,7 +25,8 @@ class ESService:
         doc_body = {
             "url": url,
             "name": file_name,
-            "content": file_content
+            "content": file_content,
+            "updated_at": datetime.datetime.now().astimezone().isoformat()
         }
         
         # PDFメタデータがあれば追加
@@ -62,9 +64,9 @@ class ESService:
             }
         )
 
-    def get_url_list(self) -> Dict[str, Any]:
-        """登録されている全ドキュメントのURLリストを取得"""
-        return self.es.search(
+    def get_document_list(self) -> Dict[str, Any]:
+        """登録されている全ドキュメントのURLとIDリストを取得"""
+        result = self.es.search(
             index=self.index_name,
             body={
                 "_source": ["url"],
@@ -73,4 +75,18 @@ class ESService:
                 },
                 "size": 10000  # 十分大きな数を指定して全件取得
             }
+        )
+        return {
+            "files": [
+                {"url": hit["_source"]["url"], "id": hit["_id"]} 
+                for hit in result["hits"]["hits"]
+            ]
+        }
+
+    def get_document_by_id(self, doc_id: str) -> Dict[str, Any]:
+        """指定されたIDのドキュメントを取得"""
+        return self.es.get(
+            index=self.index_name,
+            id=doc_id,
+            _source=["url", "name", "updated_at", "pdf_name"]
         )

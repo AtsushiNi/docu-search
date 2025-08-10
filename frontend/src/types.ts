@@ -5,6 +5,6 @@ export interface SearchResult {
     name: string;
     content: string;
     url: string;
-    last_modified: string;
+    updated_at: string;
   };
 }

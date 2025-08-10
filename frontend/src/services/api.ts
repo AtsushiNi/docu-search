@@ -17,9 +17,9 @@ export const searchDocuments = async (query: string) => {
 export const getFileList = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/files`);
-    return response.data.urls;
+    return response.data.files;
   } catch (error) {
-    console.error('Error getting file list:', error);
+    console.error('Error getting files:', error);
     throw error;
   }
 };
@@ -62,6 +62,25 @@ export const importSVNResource = async (repoUrl: string, username?: string, pass
     return response.data;
   } catch (error) {
     console.error('Error importing SVN resource:', error);
+    throw error;
+  }
+};
+
+export const getDocumentMetadata = async (documentId: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/files/${documentId}`);
+    const document = response.data;
+    
+    // 実際に保存されている項目のみを返す
+    return {
+      id: documentId,
+      title: document.name,
+      updated_at: document.updated_at,
+      url: document.url,
+      pdf_name: document.pdf_name || null
+    };
+  } catch (error) {
+    console.error('Error getting document metadata:', error);
     throw error;
   }
 };

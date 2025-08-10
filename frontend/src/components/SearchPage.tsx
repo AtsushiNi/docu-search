@@ -3,7 +3,7 @@ import { searchDocuments } from '../services/api';
 import SearchResults from './SearchResults';
 import type { SearchResult } from '../types';
 
-const SearchSection = () => {
+const SearchPage = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -22,7 +22,7 @@ const SearchSection = () => {
   };
 
   return (
-    <div>
+    <div style={{ marginLeft: 200, marginRight: 200 }}>
       <div className="search-container">
         <input
           type="text"
@@ -45,4 +45,4 @@ const SearchSection = () => {
   );
 };
 
-export default SearchSection;
+export default SearchPage;

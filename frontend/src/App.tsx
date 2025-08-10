@@ -1,12 +1,14 @@
 import React, { useState } from 'react'
 import { ConfigProvider, Layout, Modal, Form, message } from 'antd'
-import { importSVNResource } from './services/api'
 import jaJP from 'antd/locale/ja_JP'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
+import SearchPage from './components/SearchPage'
+import DetailPage from './components/DetailPage'
 import FileTree from './components/FileTree'
-import SearchSection from './components/SearchSection'
-import PDFViewer from './components/PDFViewer'
 import SVNResourceForm from './components/SVNResourceForm'
+import { importSVNResource } from './services/api'
+
 const { Sider, Content } = Layout
 
 const App: React.FC = () => {
@@ -42,47 +44,74 @@ const App: React.FC = () => {
     setIsModalOpen(false)
   }
 
+  const AppLayout = ({ children }: { children: React.ReactNode }) => (
+    <Layout style={{ minHeight: '100vh' }}>
+      {contextHolder}
+      <Sider width={350} theme="light">
+        <a href="/" style={{ 
+          display: 'block', 
+          padding: '16px', 
+          paddingBottom: 0,
+          textAlign: 'center',
+          fontSize: '1.5rem',
+          fontWeight: 'bold',
+          color: '#1890ff',
+          textDecoration: 'none',
+          transition: 'color 0.3s'
+        }}>
+          Docu Search
+        </a>
+        <FileTree />
+        <div style={{ 
+          padding: '16px', 
+          borderTop: '1px solid #eee',
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          width: '350px',
+          backgroundColor: 'white'
+        }}>
+          <button 
+            className="search-button" 
+            style={{ width: '100%' }}
+            onClick={showModal}
+          >
+            Add/Update SVN Resource
+          </button>
+          <Modal 
+            title="Add/Update SVN Resource" 
+            open={isModalOpen}
+            onOk={handleOk}
+            onCancel={handleCancel}
+          >
+            <SVNResourceForm form={form} />
+          </Modal>
+        </div>
+      </Sider>
+      <Layout style={{ width: "calc(100vw - 350px)" }}>
+        <Content style={{ padding: '24px' }}>
+          {children}
+        </Content>
+      </Layout>
+    </Layout>
+  )
+
   return (
     <ConfigProvider locale={jaJP} theme={{hashed: false}}>
-      {contextHolder}
-      <Layout style={{ minHeight: '100vh' }}>
-        <Sider width={350} theme="light">
-          <FileTree />
-          <div style={{ 
-            padding: '16px', 
-            borderTop: '1px solid #eee',
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            width: '350px',
-            backgroundColor: 'white'
-          }}>
-            <button 
-              className="search-button" 
-              style={{ width: '100%' }}
-              onClick={showModal}
-            >
-              Add/Update SVN Resource
-            </button>
-            <Modal 
-              title="Add/Update SVN Resource" 
-              open={isModalOpen}
-              onOk={handleOk}
-              onCancel={handleCancel}
-            >
-              <SVNResourceForm form={form} />
-            </Modal>
-          </div>
-        </Sider>
-        <Layout style={{ width: "calc(100vw - 350px)" }}>
-          <Content style={{ padding: '24px' }}>
-            <SearchSection />
-            <div style={{ marginTop: '24px' }}>
-              <PDFViewer filename="J5by6KGRTDw0f2vonu2T2S4A4QwVQro89OY3YIlJEH0" />
-            </div>
-          </Content>
-        </Layout>
-      </Layout>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={
+            <AppLayout>
+              <SearchPage />
+            </AppLayout>
+          } />
+          <Route path="/documents/:id" element={
+            <AppLayout>
+              <DetailPage />
+            </AppLayout>
+          } />
+        </Routes>
+      </BrowserRouter>
     </ConfigProvider>
   )
 }

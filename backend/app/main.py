@@ -75,11 +75,20 @@ async def import_svn_resource(request: SVNImportRequest = Body(...)):
 
 @app.get("/files")
 async def get_files():
-    """登録されている全ドキュメントのURLリストを取得"""
-    logger.info("URL list request received")
+    """登録されている全ドキュメントのURLとIDリストを取得"""
+    logger.info("File list request received")
     es_service = ESService()
-    result = es_service.get_url_list()
-    return {"urls": [hit["_source"]["url"] for hit in result["hits"]["hits"]]}
+    return es_service.get_document_list()
+
+@app.get("/files/{id}")
+async def get_file_by_id(id: str):
+    """指定されたIDのドキュメントを取得"""
+    logger.info(f"File request received - id: {id}")
+    es_service = ESService()
+    result = es_service.get_document_by_id(id)
+    if not result["found"]:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return result["_source"]
 
 @app.get("/pdf/{filename}")
 async def get_pdf(filename: str):

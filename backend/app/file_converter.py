@@ -4,7 +4,7 @@ import os
 import requests
 
 CONVERTIBLE_EXTS = ['docx', 'pptx', 'xlsx', 'xls', 'xlsm']
-PDF_CONVERTIBLE_EXTS = ['xlsx', 'xls', '.xlsb', '.xlsm', 'docs', 'doc']
+PDF_CONVERTIBLE_EXTS = ['xlsx', 'xls', '.xlsb', '.xlsm', 'docx', 'doc']
 OLD_WORD_EXTS = ['doc']
 
 class FileConverter:

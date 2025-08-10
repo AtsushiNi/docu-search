@@ -1,7 +1,7 @@
 import type { SearchResult } from '../types';
 import React from 'react';
-import { Button, Card } from 'antd';
-import { DownloadOutlined } from '@ant-design/icons';
+import { Button, Card, Row, Col, Space } from 'antd';
+import { DownloadOutlined, EyeOutlined } from '@ant-design/icons';
 
 interface SearchResultsProps {
   results: SearchResult[];
@@ -13,35 +13,52 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results }) => {
   }
 
   return (
-    <div className="space-y-4">
-      {results.map((result) => (
-        <Card 
-          key={result._id}
-          hoverable
-          className="w-full"
-          title={result._source.name}
-          extra={<Button 
-            icon={<DownloadOutlined/>} 
-            color='default' 
-            variant='filled'
-            onClick={() => window.open(result._source.url)}
-          />}
-        >
-          <Card.Meta
-            description={
-              <>
-                <p className="text-sm text-gray-600">{result._source.url}</p>
-                <p className="mt-2 text-gray-800 line-clamp-2">
-                  {/* {result._source.content} */}
-                </p>
-                <p className="text-xs text-gray-500 mt-2">
-                  Last modified: {new Date(result._source.last_modified).toLocaleString()}
-                </p>
-              </>
-            }
-          />
-        </Card>
-      ))}
+    <div>
+      <Space direction='vertical' size="large" style={{width: "100%"}}>
+        {results.map((result) => (
+          <Card 
+            key={result._id}
+            className="w-full"
+            title={result._source.name}
+            extra={<>
+              <Button 
+                icon={<EyeOutlined/>}
+                color='default'
+                variant='filled'
+                onClick={() => window.open(`/documents/${result._id}`, '_blank')}
+                style={{ marginRight: 8 }}
+              >
+                PDFを表示
+              </Button>
+              <Button 
+                icon={<DownloadOutlined/>} 
+                color='default' 
+                variant='filled'
+                onClick={() => window.open(result._source.url)}
+              >
+                ダウンロード
+              </Button>
+            </>}
+          >
+            <Card.Meta
+              description={
+                <div style={{ marginBottom: '4px' }}>
+                  <Row gutter={8}>
+                    <Col span={2} className="text-sm text-gray-600">Source URL:</Col>
+                    <Col span={18} className="text-sm text-gray-600">{result._source.url}</Col>
+                  </Row>
+                  <Row gutter={8}>
+                    <Col span={2} className="text-xs text-gray-500">Last updated:</Col>
+                    <Col span={18} className="text-xs text-gray-500">
+                      {new Date(result._source.updated_at).toLocaleString()}
+                    </Col>
+                  </Row>
+                </div>
+              }
+            />
+          </Card>
+        ))}
+      </Space>
     </div>
   );
 };

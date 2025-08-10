@@ -6,6 +6,7 @@ interface TreeNode {
   title: string | React.ReactNode;
   key: string;
   url: string;
+  id?: string;
   isLeaf: boolean;
   children?: TreeNode[];
 }
@@ -51,11 +52,11 @@ const FileTree: React.FC<FileTreeProps> = () => {
     };
   };
 
-  const buildFileTree = (paths: string[]): TreeNode[] => {
+  const buildFileTree = (files: {url: string, id: string}[]): TreeNode[] => {
     const root: TreeNode = { title: 'Root', key: 'root', url: '', isLeaf: false, children: [] };
     
-    paths.forEach((path, index) => {
-      const {scheme, path: cleanPath} = extractUrlScheme(path);
+    files.forEach((file, index) => {
+      const {scheme, path: cleanPath} = extractUrlScheme(file.url);
       const parts = cleanPath.split('/').filter(part => part !== '');
       if (scheme && parts.length > 0) {
         parts[0] = scheme + parts[0];
@@ -73,6 +74,7 @@ const FileTree: React.FC<FileTreeProps> = () => {
             title: part,
             key: `${index}-${i}`,
             url: nodePath,
+            id: i === parts.length - 1 ? file.id : undefined,
             isLeaf: i === parts.length - 1
           };
           
@@ -93,7 +95,7 @@ const FileTree: React.FC<FileTreeProps> = () => {
     const fetchFiles = async () => {
       try {
         const files = await getFileList();
-        const treeData = buildFileTree(files);
+        const treeData = buildFileTree(files.map((f: {url: string, id: string}) => ({url: f.url, id: f.id})));
         setFileTree(treeData);
       } catch (error) {
         console.error('Failed to load files:', error);
@@ -208,8 +210,8 @@ const FileTree: React.FC<FileTreeProps> = () => {
         }}
         onSelect={(_, info) => {
           const node = info.node as TreeNode;
-          if (node.url) {
-            window.open(node.url, '_blank');
+          if (node.id) {
+            window.open(`/documents/${node.id}`, '_blank');
           }
         }}
       />
