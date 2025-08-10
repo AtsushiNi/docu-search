@@ -3,6 +3,7 @@ version: '3.8'
 services:
   backend:
     build: ./backend
+    restart: always
     ports:
       - "8000:8000"
     environment:
@@ -11,9 +12,11 @@ services:
       - elasticsearch
     volumes:
       - ./backend:/app
+      - pdf_storage:/var/lib/pdf_storage
 
   frontend:
     build: ./frontend
+    restart: always
     ports:
       - "5173:5173"
     volumes:
@@ -24,6 +27,7 @@ services:
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.9.0
+    restart: always
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -34,6 +38,7 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.9.0
+    restart: always
     ports:
       - "5601:5601"
     environment:
@@ -54,8 +59,17 @@ services:
       - apache2_conf:/usr/local/apache2/conf     # httpd.confおよびsvn.confの編集の為に必要
       - subversion_access:/etc/subversion        # subversion-access-controlの編集の為に必要
       - svn_home:/home/svn                       # ローカルユーザー及びレポジトリの永続化の為に必要
+  
+  unoserver: # Officeファイルの変換サーバー
+    image: libreofficedocker/libreoffice-unoserver:3.22
+    container_name: unoserver
+    restart: always
+    ports:
+      - "2004:2004"
+
 volumes:
   es_data:
   apache2_conf:
   subversion_access:
   svn_home:
+  pdf_storage:

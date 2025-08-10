@@ -2,7 +2,6 @@ import os
 import subprocess
 from typing import List, Optional
 from xml.etree import ElementTree
-from fastapi import HTTPException
 
 def build_auth_args(username: Optional[str], password: Optional[str]) -> List[str]:
     """SVN認証引数を構築"""

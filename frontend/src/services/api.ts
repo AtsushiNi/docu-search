@@ -35,3 +35,15 @@ export const exploreSVNRepo = async (repoUrl: string, path: string = '') => {
     throw error;
   }
 };
+
+export const getPDF = async (filename: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/pdf/${filename}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting PDF:', error);
+    throw error;
+  }
+};
