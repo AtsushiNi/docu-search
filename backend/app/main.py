@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 import os
@@ -66,9 +66,11 @@ async def explore_repo(request: SVNExploreRequest = Depends()):
     """SVNリポジトリ探索エンドポイント"""
     return await svn_explore(request)
 
-@app.get("/svn/import")
-async def import_svn_resource(request: SVNImportRequest = Depends()):
-    """SVNリソースをElasticSearchにインポートするエンドポイント"""
+@app.post("/svn/import")
+async def import_svn_resource(request: SVNImportRequest = Body(...)):
+    """
+    SVNリポジトリからドキュメントをElasticSearchにインポート
+    """
     return await svn_import(request)
 
 @app.get("/files")

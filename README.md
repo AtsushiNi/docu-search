@@ -9,11 +9,11 @@ FastAPI + React + Elasticsearchを使用したドキュメント検索システ�
 
 ## クイックスタート
 ```bash
-docker-compose up --build
+docker-compose up --build -d
 ```
 
 ## アクセスURL
-- フロントエンド: http://localhost:3000
+- フロントエンド: http://localhost:5173
 - API: http://localhost:8000
     - 設計書: http://localhost:8000/docs
 - Elasticsearch: http://localhost:9200

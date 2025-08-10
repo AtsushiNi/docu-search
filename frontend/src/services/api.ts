@@ -47,3 +47,21 @@ export const getPDF = async (filename: string) => {
     throw error;
   }
 };
+
+export const importSVNResource = async (repoUrl: string, username?: string, password?: string) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/svn/import`, {
+      url: repoUrl,
+      username,
+      password
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error importing SVN resource:', error);
+    throw error;
+  }
+};

@@ -1,5 +1,6 @@
 import os
 import tempfile
+import asyncio
 from typing import List, Optional
 from pydantic import BaseModel
 import hashlib
@@ -135,6 +136,7 @@ async def _import_folder(folder_url: str, auth_args: List[str]):
     """SVNフォルダをダウンロードし、Elasticsearchに保存する"""
     file_list = []
     
+    # SVNのファイル一覧を取得
     def explore(path: str):
         root = list_svn_directory(path, auth_args)
         for entry in root.findall(".//entry"):
@@ -149,12 +151,11 @@ async def _import_folder(folder_url: str, auth_args: List[str]):
     
     explore(folder_url)
     
-    processed_count = 0
+    # 各ファイルを非同期で処理
     for file_url in file_list:
-        if await _process_file(file_url, auth_args):
-            processed_count += 1
+        asyncio.create_task(_process_file(file_url, auth_args))
     
-    return {"status": "success", "message": f"Imported {processed_count} files to Elasticsearch"}
+    return {"status": "success", "message": "Started background import process"}
 
 async def _import_file(file_url: str, auth_args: List[str]):
     """単一SVNファイルをダウンロードし、Elasticsearchに保存する"""
