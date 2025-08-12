@@ -7,4 +7,7 @@ export interface SearchResult {
     url: string;
     updated_at: string;
   };
+  highlight?: {
+    content: string[];
+  };
 }

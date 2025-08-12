@@ -56,6 +56,19 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results }) => {
                 </div>
               }
             />
+            <div className="mt-4">
+              {result.highlight?.content ? (
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: result.highlight.content.join(' ... ').replace(/\s\|/g, "") 
+                  }} 
+                />
+              ) : (
+                <div className="text-gray-700">
+                  {result._source.content.substring(0, 200)}...
+                </div>
+              )}
+            </div>
           </Card>
         ))}
       </Space>

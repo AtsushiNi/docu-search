@@ -2,6 +2,7 @@ from elasticsearch import Elasticsearch
 from typing import Dict, Any
 from pydantic_settings import BaseSettings
 import datetime
+import logging
 
 class ElasticsearchSettings(BaseSettings):
     """Elasticsearch設定クラス"""
@@ -18,6 +19,67 @@ class ESService:
             verify_certs=settings.verify_certs
         )
         self.index_name = "documents"
+        self._initialize_index()
+        
+    def _initialize_index(self):
+        """インデックスを初期化（存在しない場合作成）"""
+        if not self.es.indices.exists(index=self.index_name):
+            try:
+                self.es.indices.create(
+                    index=self.index_name,
+                    body={
+                        "settings": {
+                            "analysis": {
+                                "tokenizer": {
+                                    "kuromoji_tokenizer": {
+                                        "type": "kuromoji_tokenizer"
+                                    }
+                                },
+                                "char_filter": {
+                                    "icu_normalizer": {
+                                    "type": "icu_normalizer"
+                                    }
+                                },
+                                "filter": {
+                                    "ja_stop": {
+                                    "type": "stop",
+                                    "stopwords": "_japanese_"
+                                    }
+                                },
+                                "analyzer": {
+                                    "kuromoji_analyzer": {
+                                        "type": "custom",
+                                        "tokenizer": "kuromoji_tokenizer",
+                                        "char_filter": ["icu_normalizer"],
+                                        "filter": [
+                                            "kuromoji_baseform",
+                                            "kuromoji_part_of_speech",
+                                            "ja_stop",
+                                            "kuromoji_number",
+                                            "kuromoji_stemmer"
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        "mappings": {
+                            "properties": {
+                            "url": { "type": "keyword" },
+                            "name": { "type": "text" },
+                            "content": {
+                                "type": "text",
+                                "analyzer": "kuromoji_analyzer"
+                            },
+                            "updated_at": { "type": "date" },
+                            "pdf_name": { "type": "text" }
+                            }
+                        }
+                    }
+                )
+                logging.info(f"Created index {self.index_name} with kuromoji analyzer")
+            except Exception as e:
+                logging.error(f"Failed to create index: {e}")
+                raise
 
     def save_document(self, doc_id: str, url: str, file_name: str, file_content: str,  
                     pdf_name: str = None) -> None:
@@ -58,7 +120,19 @@ class ESService:
             body={
                 "query": {
                     "match": {
-                        "content": query
+                        "content": {
+                            "query": query,
+                            "analyzer": "kuromoji_analyzer"
+                        }
+                    }
+                },
+                "highlight": {
+                    "fields": {
+                        "content": {
+                            "pre_tags": ["<mark>"],
+                            "post_tags": ["</mark>"],
+                            "number_of_fragments": 100
+                        }
                     }
                 }
             }
