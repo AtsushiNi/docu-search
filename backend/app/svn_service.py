@@ -26,12 +26,14 @@ class SVNExploreRequest(BaseModel):
     file_types: str = "txt,pdf,docx,md,xlsx,xls"  # デフォルトでサポートするファイルタイプ
     username: Optional[str] = None
     password: Optional[str] = None
+    ip_address: Optional[str] = None
 
 class SVNImportRequest(BaseModel):
     """SVNrリソースインポートリクエストモデル"""
     url: str
     username: Optional[str] = None
     password: Optional[str] = None
+    ip_address: Optional[str] = None
 
 async def explore_repo(request: SVNExploreRequest):
     """SVNリポジトリを再帰的に探索し、指定タイプのファイルリストを返す"""
@@ -41,7 +43,7 @@ async def explore_repo(request: SVNExploreRequest):
 
     def explore(path: str):
         """内部関数: 指定パス以下のディレクトリを再帰的に探索"""
-        root = list_svn_directory(path, auth_args)  # SVNディレクトリリスト取得
+        root = list_svn_directory(path, auth_args, request.ip_address)  # SVNディレクトリリスト取得
         for entry in root.findall(".//entry"):  # 各エントリを処理
             kind = entry.get("kind")  # エントリ種別 (file/dir)
             name = entry.find("name").text  # ファイル/ディレクトリ名
@@ -67,11 +69,11 @@ async def explore_repo(request: SVNExploreRequest):
 async def import_resource(request: SVNImportRequest):
     """SVNファイルまたはフォルダをElasticSearchに取り込む"""
     auth_args = build_auth_args(request.username, request.password)  # 認証引数作成
-    resource_info = get_file_info(request.url, auth_args)  # ファイル情報取得
+    resource_info = get_file_info(request.url, auth_args, request.ip_address)  # ファイル情報取得
     
     if resource_info["is_folder"]:  # フォルダの場合
-        return await _import_folder(request.url, auth_args)
-    return await _import_file(request.url, auth_args, resource_info["file_name"])  # ファイルの場合
+        return await _import_folder(request.url, auth_args, request.ip_address)
+    return await _import_file(request.url, auth_args, request.ip_address)  # ファイルの場合
 
 async def _convert_file(file_path: str) -> tuple:
     """ファイルを適切な形式に変換"""
@@ -100,7 +102,7 @@ async def _convert_file(file_path: str) -> tuple:
             content = f.read().decode('utf-8', errors='replace')
     return content, pdf_name
 
-async def _process_file(file_url: str, auth_args: List[str]) -> bool:
+async def _process_file(file_url: str, auth_args: List[str], ip_address: Optional[str] = None) -> bool:
     """内部関数: 単一ファイルを処理してElasticsearchに保存"""
     with tempfile.TemporaryDirectory() as temp_dir:
         try:
@@ -112,7 +114,7 @@ async def _process_file(file_url: str, auth_args: List[str]) -> bool:
             # ダウンロード先: {一時フォルダ}/{doc_id}.{拡張子}
             temp_file_path = os.path.join(temp_dir, f"{doc_id}{file_ext}")
             with open(temp_file_path, 'wb') as f:
-                for chunk in download_svn_file(file_url, auth_args):
+                for chunk in download_svn_file(file_url, auth_args, ip_address):
                     f.write(chunk)
 
             """ファイルを適切な形式に変換"""
@@ -132,13 +134,13 @@ async def _process_file(file_url: str, auth_args: List[str]) -> bool:
             logger.error(f"Failed to process file {file_url}: {str(e)}", exc_info=True)
             return False
 
-async def _import_folder(folder_url: str, auth_args: List[str]):
+async def _import_folder(folder_url: str, auth_args: List[str], ip_address: Optional[str] = None):
     """SVNフォルダをダウンロードし、Elasticsearchに保存する"""
     file_list = []
     
     # SVNのファイル一覧を取得
     def explore(path: str):
-        root = list_svn_directory(path, auth_args)
+        root = list_svn_directory(path, auth_args, ip_address)
         for entry in root.findall(".//entry"):
             kind = entry.get("kind")
             name = entry.find("name").text
@@ -153,13 +155,13 @@ async def _import_folder(folder_url: str, auth_args: List[str]):
     
     # 各ファイルを非同期で処理
     for file_url in file_list:
-        asyncio.create_task(_process_file(file_url, auth_args))
+        asyncio.create_task(_process_file(file_url, auth_args, ip_address))
     
     return {"status": "success", "message": "Started background import process"}
 
-async def _import_file(file_url: str, auth_args: List[str]):
+async def _import_file(file_url: str, auth_args: List[str], ip_address: Optional[str] = None):
     """単一SVNファイルをダウンロードし、Elasticsearchに保存する"""
-    success = await _process_file(file_url, auth_args)
+    success = await _process_file(file_url, auth_args, ip_address)
     
     if success:
         return {"status": "success", "message": f"Imported file {file_url} to Elasticsearch"}

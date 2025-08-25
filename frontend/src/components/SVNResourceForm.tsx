@@ -26,6 +26,13 @@ const SVNResourceForm = ({ form }: SVNResourceFormProps) => {
       </Form.Item>
 
       <Form.Item
+        name="ipAddress"
+        label="IP Address (Optional)"
+      >
+        <Input />
+      </Form.Item>
+      
+      <Form.Item
         name="username"
         label="User Name"
       >
@@ -38,7 +45,7 @@ const SVNResourceForm = ({ form }: SVNResourceFormProps) => {
       >
         <Input.Password placeholder="password" />
       </Form.Item>
-      
+
       <div style={{ color: '#888', fontSize: '0.8rem', marginTop: '16px' }}>
         処理には時間がかかることがあります
       </div>

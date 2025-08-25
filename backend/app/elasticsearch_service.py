@@ -113,11 +113,11 @@ class ESService:
                 body=doc_body
             )
 
-    def search_documents(self, query: str) -> Dict[str, Any]:
+    def search_documents(self, query: str, search_type: str = "exact") -> Dict[str, Any]:
         """ドキュメントを検索"""
-        return self.es.search(
-            index=self.index_name,
-            body={
+        if search_type == "fuzzy":
+            # 曖昧検索
+            search_body = {
                 "query": {
                     "match": {
                         "content": {
@@ -125,17 +125,35 @@ class ESService:
                             "analyzer": "kuromoji_analyzer"
                         }
                     }
-                },
-                "highlight": {
-                    "fields": {
+                }
+            }
+        else:
+            # 単語検索
+            search_body = {
+                "query": {
+                    "match_phrase": {
                         "content": {
-                            "pre_tags": ["<mark>"],
-                            "post_tags": ["</mark>"],
-                            "number_of_fragments": 100
+                            "query": query,
+                            "analyzer": "kuromoji_analyzer"
                         }
                     }
                 }
             }
+        
+        # ハイライト設定を追加
+        search_body["highlight"] = {
+            "fields": {
+                "content": {
+                    "pre_tags": ["<mark>"],
+                    "post_tags": ["</mark>"],
+                    "number_of_fragments": 100
+                }
+            }
+        }
+        
+        return self.es.search(
+            index=self.index_name,
+            body=search_body
         )
 
     def get_document_list(self) -> Dict[str, Any]:
