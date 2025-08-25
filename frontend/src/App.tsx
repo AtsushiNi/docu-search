@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
 import SearchPage from './components/SearchPage'
 import DetailPage from './components/DetailPage'
+import JobsPage from './components/JobsPage'
 import FileTree from './components/FileTree'
 import SVNResourceForm from './components/SVNResourceForm'
 import { importSVNResource } from './services/api'
@@ -65,8 +66,9 @@ const App: React.FC = () => {
         <div style={{ 
           padding: '16px', 
           borderTop: '1px solid #eee',
+          borderRadius: '4px',
           position: 'fixed',
-          bottom: 0,
+          bottom: 70,
           left: 0,
           width: '350px',
           backgroundColor: 'white'
@@ -86,6 +88,23 @@ const App: React.FC = () => {
           >
             <SVNResourceForm form={form} />
           </Modal>
+        </div>
+        <div style={{
+          marginBottom: '16px',
+          padding: '16px',
+          backgroundColor: 'white',
+          borderRadius: '4px',
+          width: '350px',
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+        }}>
+          <button 
+            style={{ width: '100%', backgroundColor: '#f0f0f0', borderRadius: 4 }}
+            onClick={() => window.location.href = '/jobs'}
+          >
+            ジョブ管理
+          </button>
         </div>
       </Sider>
       <Layout style={{ width: "calc(100vw - 350px)" }}>
@@ -108,6 +127,11 @@ const App: React.FC = () => {
           <Route path="/documents/:id" element={
             <AppLayout>
               <DetailPage />
+            </AppLayout>
+          } />
+          <Route path="/jobs" element={
+            <AppLayout>
+              <JobsPage />
             </AppLayout>
           } />
         </Routes>

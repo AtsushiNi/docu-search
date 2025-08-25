@@ -11,3 +11,26 @@ export interface SearchResult {
     content: string[];
   };
 }
+
+export interface RQJob {
+  id: string;
+  queue: string;
+  status: string;
+  created_at: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  result: string | null;
+  exc_info: string | null;
+  function: string;
+  args: unknown[];
+  kwargs: Record<string, unknown>;
+  error?: string;
+}
+
+export interface QueueStats {
+  [queueName: string]: {
+    count: number;
+    failed_jobs: number;
+    scheduled_jobs: number;
+  };
+}
