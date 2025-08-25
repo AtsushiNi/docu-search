@@ -102,6 +102,48 @@ async def _convert_file(file_path: str) -> tuple:
             content = f.read().decode('utf-8', errors='replace')
     return content, pdf_name
 
+def _process_file_task(
+    file_url: str, 
+    username: Optional[str] = None, 
+    password: Optional[str] = None, 
+    ip_address: Optional[str] = None
+) -> bool:
+    """RQワーカー用: 単一ファイルを処理してElasticsearchに保存"""
+    import asyncio
+    from .svn_client import build_auth_args, download_svn_file
+    
+    auth_args = build_auth_args(username, password)
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        try:
+            doc_id = url_to_id(file_url) # URLからユニークなIDを生成
+
+            """SVNからファイルをダウンロードして一時ディレクトリに保存"""
+            file_name = file_url.split('/')[-1] # ファイル名(拡張子付き)
+            file_ext = os.path.splitext(file_name)[1] # ファイル拡張子
+            # ダウンロード先: {一時フォルダ}/{doc_id}.{拡張子}
+            temp_file_path = os.path.join(temp_dir, f"{doc_id}{file_ext}")
+            with open(temp_file_path, 'wb') as f:
+                for chunk in download_svn_file(file_url, auth_args, ip_address):
+                    f.write(chunk)
+
+            """ファイルを適切な形式に変換"""
+            file_content, pdf_name = asyncio.run(_convert_file(temp_file_path))
+
+            """Elasticsearchにドキュメントを保存（同じURLの場合は更新）"""
+            ESService().save_document(
+                doc_id, # 主キー. file_urlから生成したハッシュ値.
+                file_url,
+                file_name,
+                file_content,
+                pdf_name=pdf_name
+            )
+
+            return True
+        except Exception as e:
+            logger.error(f"Failed to process file {file_url}: {str(e)}", exc_info=True)
+            return False
+
 async def _process_file(file_url: str, auth_args: List[str], ip_address: Optional[str] = None) -> bool:
     """内部関数: 単一ファイルを処理してElasticsearchに保存"""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -136,6 +178,8 @@ async def _process_file(file_url: str, auth_args: List[str], ip_address: Optiona
 
 async def _import_folder(folder_url: str, auth_args: List[str], ip_address: Optional[str] = None):
     """SVNフォルダをダウンロードし、Elasticsearchに保存する"""
+    from .queue_service import enqueue_svn_import_task
+    
     file_list = []
     
     # SVNのファイル一覧を取得
@@ -153,19 +197,48 @@ async def _import_folder(folder_url: str, auth_args: List[str], ip_address: Opti
     
     explore(folder_url)
     
-    # 各ファイルを非同期で処理
-    for file_url in file_list:
-        asyncio.create_task(_process_file(file_url, auth_args, ip_address))
+    # 各ファイルをキューに追加
+    job_ids = []
+    username, password = None, None
+    if auth_args:
+        # auth_argsからユーザー名とパスワードを抽出
+        for arg in auth_args:
+            if arg.startswith('--username='):
+                username = arg.split('=', 1)[1]
+            elif arg.startswith('--password='):
+                password = arg.split('=', 1)[1]
     
-    return {"status": "success", "message": "Started background import process"}
+    for file_url in file_list:
+        job = enqueue_svn_import_task(file_url, username, password, ip_address)
+        job_ids.append(job.id)
+    
+    return {
+        "status": "success", 
+        "message": f"Enqueued {len(job_ids)} files for import",
+        "job_ids": job_ids
+    }
 
 async def _import_file(file_url: str, auth_args: List[str], ip_address: Optional[str] = None):
     """単一SVNファイルをダウンロードし、Elasticsearchに保存する"""
-    success = await _process_file(file_url, auth_args, ip_address)
+    from .queue_service import enqueue_svn_import_task
     
-    if success:
-        return {"status": "success", "message": f"Imported file {file_url} to Elasticsearch"}
-    return {"status": "success", "message": f"Saved file {file_url} (no conversion needed)"}
+    # auth_argsからユーザー名とパスワードを抽出
+    username, password = None, None
+    if auth_args:
+        for arg in auth_args:
+            if arg.startswith('--username='):
+                username = arg.split('=', 1)[1]
+            elif arg.startswith('--password='):
+                password = arg.split('=', 1)[1]
+    
+    # ファイルをキューに追加
+    job = enqueue_svn_import_task(file_url, username, password, ip_address)
+    
+    return {
+        "status": "success", 
+        "message": f"Enqueued file {file_url} for import",
+        "job_id": job.id
+    }
 
 def url_to_id(url: str) -> str:
     """リソースのURLからークなIDを生成"""

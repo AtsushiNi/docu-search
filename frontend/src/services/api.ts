@@ -91,3 +91,25 @@ export const getDocumentMetadata = async (documentId: string) => {
     throw error;
   }
 };
+
+export const getJobList = async (queueName?: string, status?: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/jobs`, {
+      params: { queue_name: queueName, status }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting job list:', error);
+    throw error;
+  }
+};
+
+export const getQueueStats = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/jobs/queue/stats`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting queue stats:', error);
+    throw error;
+  }
+};

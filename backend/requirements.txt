@@ -4,3 +4,5 @@ elasticsearch==8.9.0
 python-dotenv==1.0.0
 pydantic-settings==2.2.1
 markitdown[docx,pptx,xlsx,xls]
+redis==5.0.1
+rq==1.15.1
