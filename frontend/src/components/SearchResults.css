@@ -1,0 +1,56 @@
+/* SearchResults.css */
+.scrollspy-item {
+  display: block;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  text-decoration: none;
+  color: inherit;
+}
+
+.scrollspy-item:hover {
+  background-color: #f5f5f5;
+  text-decoration: none;
+  color: inherit;
+}
+
+.scrollspy-current {
+  background-color: #e6f7ff;
+  border-left-color: #1890ff;
+}
+
+.scrollspy-current .scrollspy-title {
+  color: #1890ff;
+  font-weight: 600;
+}
+
+.scrollspy-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+  line-height: 1.4;
+  margin-bottom: 2px;
+}
+
+.scrollspy-date {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .scrollspy-item {
+    padding: 6px 8px;
+  }
+  
+  .scrollspy-title {
+    font-size: 13px;
+  }
+  
+  .scrollspy-date {
+    font-size: 11px;
+  }
+}

@@ -2,10 +2,10 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000';
 
-export const searchDocuments = async (query: string) => {
+export const searchDocuments = async (query: string, searchType: string = 'exact') => {
   try {
     const response = await axios.get(`${API_BASE_URL}/search`, {
-      params: { query }
+      params: { query, search_type: searchType }
     });
     return response.data.results;
   } catch (error) {
@@ -24,10 +24,16 @@ export const getFileList = async () => {
   }
 };
 
-export const exploreSVNRepo = async (repoUrl: string, path: string = '') => {
+export const exploreSVNRepo = async (repoUrl: string, path: string = '', username?: string, password?: string, ipAddress?: string) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/svn/explore`, {
-      params: { repo_url: repoUrl, path }
+      params: { 
+        repo_url: repoUrl, 
+        path,
+        username,
+        password,
+        ip_address: ipAddress
+      }
     });
     return response.data;
   } catch (error) {
@@ -48,12 +54,13 @@ export const getPDF = async (filename: string) => {
   }
 };
 
-export const importSVNResource = async (repoUrl: string, username?: string, password?: string) => {
+export const importSVNResource = async (repoUrl: string, username?: string, password?: string, ipAddress?: string) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/svn/import`, {
       url: repoUrl,
       username,
-      password
+      password,
+      ip_address: ipAddress
     }, {
       headers: {
         'Content-Type': 'application/json'

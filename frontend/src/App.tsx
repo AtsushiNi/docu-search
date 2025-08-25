@@ -23,9 +23,9 @@ const App: React.FC = () => {
   const handleOk = () => {
     form
       .validateFields()
-      .then(async (values: { svnUrl: string; username?: string; password?: string }) => {
+      .then(async (values: { svnUrl: string; username?: string; password?: string; ipAddress?: string }) => {
         try {
-          await importSVNResource(values.svnUrl, values.username, values.password)
+          await importSVNResource(values.svnUrl, values.username, values.password, values.ipAddress)
           messageApi.success('SVNリソースのインポートを開始しました')
           setIsModalOpen(false)
           form.resetFields()

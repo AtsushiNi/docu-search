@@ -54,11 +54,11 @@ async def root():
     return {"message": "Welcome to FastAPI + Elasticsearch"}
 
 @app.get("/search")
-async def search(query: str):
+async def search(query: str, search_type: str = "exact"):
     """ドキュメント検索"""
-    logger.info(f"Search request received - query: {query}")
+    logger.info(f"Search request received - query: {query}, search_type: {search_type}")
     es_service = ESService()
-    result = es_service.search_documents(query)
+    result = es_service.search_documents(query, search_type)
     return {"results": result["hits"]["hits"]}
 
 @app.get("/svn/explore")
