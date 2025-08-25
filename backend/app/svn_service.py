@@ -102,7 +102,7 @@ async def _convert_file(file_path: str) -> tuple:
             content = f.read().decode('utf-8', errors='replace')
     return content, pdf_name
 
-def _process_file_task(
+def process_file_task(
     file_url: str, 
     username: Optional[str] = None, 
     password: Optional[str] = None, 
@@ -129,38 +129,6 @@ def _process_file_task(
 
             """ファイルを適切な形式に変換"""
             file_content, pdf_name = asyncio.run(_convert_file(temp_file_path))
-
-            """Elasticsearchにドキュメントを保存（同じURLの場合は更新）"""
-            ESService().save_document(
-                doc_id, # 主キー. file_urlから生成したハッシュ値.
-                file_url,
-                file_name,
-                file_content,
-                pdf_name=pdf_name
-            )
-
-            return True
-        except Exception as e:
-            logger.error(f"Failed to process file {file_url}: {str(e)}", exc_info=True)
-            return False
-
-async def _process_file(file_url: str, auth_args: List[str], ip_address: Optional[str] = None) -> bool:
-    """内部関数: 単一ファイルを処理してElasticsearchに保存"""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        try:
-            doc_id = url_to_id(file_url) # URLからユニークなIDを生成
-
-            """SVNからファイルをダウンロードして一時ディレクトリに保存"""
-            file_name = file_url.split('/')[-1] # ファイル名(拡張子付き)
-            file_ext = os.path.splitext(file_name)[1] # ファイル拡張子
-            # ダウンロード先: {一時フォルダ}/{doc_id}.{拡張子}
-            temp_file_path = os.path.join(temp_dir, f"{doc_id}{file_ext}")
-            with open(temp_file_path, 'wb') as f:
-                for chunk in download_svn_file(file_url, auth_args, ip_address):
-                    f.write(chunk)
-
-            """ファイルを適切な形式に変換"""
-            file_content, pdf_name = await _convert_file(temp_file_path)
 
             """Elasticsearchにドキュメントを保存（同じURLの場合は更新）"""
             ESService().save_document(

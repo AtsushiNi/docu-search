@@ -39,11 +39,11 @@ def enqueue_svn_import_task(
     Returns:
         Job: キューに追加されたジョブ
     """
-    from .svn_service import _process_file_task  # 循環インポートを避けるため遅延インポート
+    from .svn_service import process_file_task  # 循環インポートを避けるため遅延インポート
     
     queue = get_queue('svn_import')
     job = queue.enqueue(
-        _process_file_task,
+        process_file_task,
         url,
         username,
         password,
