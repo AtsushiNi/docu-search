@@ -9,8 +9,8 @@ import logging
 from rq import Worker
 from rq.contrib.sentry import register_sentry
 
-from .logging_config import setup_logging
-from .queue_service import get_redis_connection
+from ..logging_config import setup_logging
+from ..services.queue_service import get_redis_connection
 
 # ログ設定
 logger = setup_logging()
@@ -21,8 +21,8 @@ def start_worker():
         # Redis接続を取得
         redis_conn = get_redis_connection()
         
-        # 監視するキューを指定（svn_importキューを監視）
-        queues = ['svn_import', 'default']
+        # 監視するキューを指定
+        queues = ['import_file', 'file_conversion', 'explore_folder', 'default']
         
         # ワーカーを作成して起動
         worker = Worker(queues, connection=redis_conn)

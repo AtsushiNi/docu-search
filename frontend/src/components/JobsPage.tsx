@@ -187,7 +187,8 @@ const JobsPage: React.FC = () => {
             >
               <Option value="">すべて</Option>
               <Option value="default">default</Option>
-              <Option value="svn_import">svn_import</Option>
+              <Option value="import_file">import_file</Option>
+              <Option value="explore_folder">explore_folder</Option>
             </Select>
             <Select
               placeholder="ステータスでフィルター"

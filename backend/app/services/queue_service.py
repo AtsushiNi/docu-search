@@ -4,7 +4,7 @@ import redis
 from rq import Queue
 from rq.job import Job
 
-from .logging_config import setup_logging
+from ..logging_config import setup_logging
 logger = setup_logging()
 
 # Redis接続設定
@@ -21,7 +21,7 @@ def get_queue(name: str = 'default') -> Queue:
     redis_conn = get_redis_connection()
     return Queue(name, connection=redis_conn)
 
-def enqueue_svn_import_task(
+def enqueue_import_file_task(
     url: str, 
     username: Optional[str] = None, 
     password: Optional[str] = None, 
@@ -39,11 +39,10 @@ def enqueue_svn_import_task(
     Returns:
         Job: キューに追加されたジョブ
     """
-    from .svn_service import process_file_task  # 循環インポートを避けるため遅延インポート
-    
-    queue = get_queue('svn_import')
+    # 循環インポートを避けるため、関数名を文字列で指定
+    queue = get_queue('import_file')
     job = queue.enqueue(
-        process_file_task,
+        'app.services.svn_service.process_file_task',  # モジュールパスを文字列で指定
         url,
         username,
         password,
@@ -54,6 +53,95 @@ def enqueue_svn_import_task(
     logger.info(f"Enqueued SVN import task for {url}, job_id: {job.id}")
     return job
 
+def enqueue_svn_explore_task(
+    folder_url: str, 
+    username: Optional[str] = None, 
+    password: Optional[str] = None, 
+    ip_address: Optional[str] = None
+) -> Job:
+    """
+    SVNフォルダ探索タスクをキューに追加
+    
+    Args:
+        folder_url: SVNフォルダURL
+        username: SVNユーザー名
+        password: SVNパスワード
+        ip_address: IPアドレス
+    
+    Returns:
+        Job: キューに追加されたジョブ
+    """
+    # 循環インポートを避けるため、関数名を文字列で指定
+    queue = get_queue('explore_folder')
+    job = queue.enqueue(
+        'app.services.svn_service.process_explore_task',  # モジュールパスを文字列で指定
+        folder_url,
+        username,
+        password,
+        ip_address,
+        job_timeout='1h'  # 1時間のタイムアウト（大規模フォルダ用）
+    )
+    
+    logger.info(f"Enqueued SVN explore task for {folder_url}, job_id: {job.id}")
+    return job
+
+def enqueue_file_conversion_task(
+    file_path: str,
+    conversion_type: Optional[str] = None,
+    output_path: Optional[str] = None,
+    sync: bool = False
+):
+    """
+    ファイル変換タスクをキューに追加
+    
+    Args:
+        file_path: 変換するファイルのパス
+        conversion_type: 変換タイプ ('office', 'pdf', 'markdown', 'text', 'auto') - Noneの場合は自動判定
+        output_path: 出力ファイルパス（オプション）
+        sync: 同期実行モード（Trueの場合、即時実行して結果を返す）
+    
+    Returns:
+        Job or dict: 非同期の場合はJobオブジェクト、同期の場合は変換結果
+    """
+    from .file_processor import FileProcessor  # 循環インポートを避けるため遅延インポート
+    
+    if sync:
+        # 同期実行モード: 直接変換を実行して結果を返す
+        return FileProcessor.process_file(file_path, conversion_type)
+    else:
+        # 非同期実行モード: キューに追加
+        if conversion_type is None:
+            # 自動判定
+            conversion_type = FileProcessor.determine_conversion_type(file_path)
+        
+        queue = get_queue('file_conversion')
+        job = queue.enqueue(
+            _process_conversion_task,
+            file_path,
+            conversion_type,
+            output_path,
+            job_timeout='10m'  # 10分のタイムアウト
+        )
+        
+        logger.info(f"Enqueued file conversion task for {file_path}, type: {conversion_type}, job_id: {job.id}")
+        return job
+
+def _process_conversion_task(
+    file_path: str,
+    conversion_type: str,
+    output_path: Optional[str] = None
+):
+    """
+    RQワーカー用: ファイル変換タスクを処理
+    """
+    from .file_processor import FileProcessor
+    
+    try:
+        return FileProcessor.process_file(file_path, conversion_type)
+    except Exception as e:
+        logger.error(f"Failed to process conversion task for {file_path}: {str(e)}", exc_info=True)
+        return {"status": "error", "error": str(e)}
+
 def get_queue_stats() -> dict:
     """
     キューの統計情報を取得
@@ -62,7 +150,7 @@ def get_queue_stats() -> dict:
         dict: キュー統計情報
     """
     redis_conn = get_redis_connection()
-    queues = ['default', 'svn_import']
+    queues = ['default', 'import_file', 'file_conversion', 'explore_folder']
     
     stats = {}
     for queue_name in queues:
@@ -92,7 +180,7 @@ def get_job_list(queue_name: Optional[str] = None, status: Optional[str] = None)
     if queue_name:
         queues_to_check = [queue_name]
     else:
-        queues_to_check = ['default', 'svn_import']
+        queues_to_check = ['default', 'import_file', 'file_conversion', 'explore_folder']
     
     jobs = []
     

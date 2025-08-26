@@ -24,11 +24,6 @@ class FileConverter:
         return re.sub(r'^\s*\|+\s*(\|\s*)*$\n?', '', content, flags=re.MULTILINE) # 空行を削除
 
     @classmethod
-    def get_markdown_filename(cls, original_path: str) -> str:
-        """元のファイル名からマークダウンファイル名を生成"""
-        return original_path.rsplit('.', 1)[0] + '.md'
-
-    @classmethod
     def is_pdf_convertible(cls, file_name: str) -> bool:
         """ファイルがPDFに変換可能か判定"""
         ext = file_name.split('.')[-1].lower() if '.' in file_name else ''

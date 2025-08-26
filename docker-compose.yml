@@ -88,7 +88,7 @@ services:
   worker: # RQワーカーサービス
     build: ./backend
     restart: always
-    command: python -m app.worker
+    command: python -m app.workers.worker
     environment:
       - ES_HOST=elasticsearch
       - REDIS_HOST=redis

@@ -24,24 +24,6 @@ export const getFileList = async () => {
   }
 };
 
-export const exploreSVNRepo = async (repoUrl: string, path: string = '', username?: string, password?: string, ipAddress?: string) => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/svn/explore`, {
-      params: { 
-        repo_url: repoUrl, 
-        path,
-        username,
-        password,
-        ip_address: ipAddress
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error exploring SVN repo:', error);
-    throw error;
-  }
-};
-
 export const getPDF = async (filename: string) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/pdf/${filename}`, {
