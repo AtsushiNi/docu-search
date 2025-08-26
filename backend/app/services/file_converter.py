@@ -4,7 +4,7 @@ import os
 import requests
 
 CONVERTIBLE_EXTS = ['docx', 'pptx', 'xlsx', 'xls', 'xlsm']
-PDF_CONVERTIBLE_EXTS = ['xlsx', 'xls', '.xlsb', '.xlsm', 'docx', 'doc']
+PDF_CONVERTIBLE_EXTS = ['xlsx', 'xls', 'xlsb', 'xlsm', 'docx', 'doc']
 OLD_WORD_EXTS = ['doc']
 
 class FileConverter:
@@ -24,18 +24,13 @@ class FileConverter:
         return re.sub(r'^\s*\|+\s*(\|\s*)*$\n?', '', content, flags=re.MULTILINE) # 空行を削除
 
     @classmethod
-    def get_markdown_filename(cls, original_path: str) -> str:
-        """元のファイル名からマークダウンファイル名を生成"""
-        return original_path.rsplit('.', 1)[0] + '.md'
-
-    @classmethod
     def is_pdf_convertible(cls, file_name: str) -> bool:
         """ファイルがPDFに変換可能か判定"""
         ext = file_name.split('.')[-1].lower() if '.' in file_name else ''
         return ext in PDF_CONVERTIBLE_EXTS
 
     @classmethod
-    def convert_to_pdf_and_save(cls, file_path: str) -> None:
+    def convert_to_pdf_and_save(cls, file_path: str) -> str:
         """OfficeファイルをPDFに変換して保存"""
         # PDF保存ディレクトリが存在しない場合は作成
         pdf_dir = "/var/lib/pdf_storage" # PDF保存用のDockerボリューム
@@ -56,7 +51,7 @@ class FileConverter:
                 for chunk in response.iter_content(chunk_size=8192):
                     out_f.write(chunk)
 
-        return doc_id
+        return output_file_path
 
     @classmethod
     def is_old_office_file(cls, file_path: str) -> bool:

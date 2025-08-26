@@ -175,6 +175,17 @@ class ESService:
             ]
         }
 
+    def get_document(self, doc_id: str) -> Dict[str, Any]:
+        """指定されたIDのドキュメントを取得（存在確認用）"""
+        try:
+            return self.es.get(
+                index=self.index_name,
+                id=doc_id,
+                _source=["url", "name", "updated_at", "pdf_name"]
+            )
+        except Exception:
+            return None
+
     def get_document_by_id(self, doc_id: str) -> Dict[str, Any]:
         """指定されたIDのドキュメントを取得"""
         return self.es.get(
@@ -182,3 +193,19 @@ class ESService:
             id=doc_id,
             _source=["url", "name", "updated_at", "pdf_name"]
         )
+
+    def update_document_pdf_info(self, doc_id: str, pdf_name: str) -> None:
+        """ドキュメントのPDF情報を更新"""
+        update_body = {
+            "doc": {
+                "pdf_name": pdf_name,
+                "updated_at": datetime.datetime.now().astimezone().isoformat()
+            }
+        }
+        
+        self.es.update(
+            index=self.index_name,
+            id=doc_id,
+            body=update_body
+        )
+        logging.info(f"Updated PDF info for document {doc_id}: {pdf_name}")
