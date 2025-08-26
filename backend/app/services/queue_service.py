@@ -85,63 +85,6 @@ def enqueue_svn_explore_task(
     logger.info(f"Enqueued SVN explore task for {folder_url}, job_id: {job.id}")
     return job
 
-def enqueue_file_conversion_task(
-    file_path: str,
-    conversion_type: Optional[str] = None,
-    output_path: Optional[str] = None,
-    sync: bool = False
-):
-    """
-    ファイル変換タスクをキューに追加
-    
-    Args:
-        file_path: 変換するファイルのパス
-        conversion_type: 変換タイプ ('office', 'pdf', 'markdown', 'text', 'auto') - Noneの場合は自動判定
-        output_path: 出力ファイルパス（オプション）
-        sync: 同期実行モード（Trueの場合、即時実行して結果を返す）
-    
-    Returns:
-        Job or dict: 非同期の場合はJobオブジェクト、同期の場合は変換結果
-    """
-    from .file_processor import FileProcessor  # 循環インポートを避けるため遅延インポート
-    
-    if sync:
-        # 同期実行モード: 直接変換を実行して結果を返す
-        return FileProcessor.process_file(file_path, conversion_type)
-    else:
-        # 非同期実行モード: キューに追加
-        if conversion_type is None:
-            # 自動判定
-            conversion_type = FileProcessor.determine_conversion_type(file_path)
-        
-        queue = get_queue('file_conversion')
-        job = queue.enqueue(
-            _process_conversion_task,
-            file_path,
-            conversion_type,
-            output_path,
-            job_timeout='10m'  # 10分のタイムアウト
-        )
-        
-        logger.info(f"Enqueued file conversion task for {file_path}, type: {conversion_type}, job_id: {job.id}")
-        return job
-
-def _process_conversion_task(
-    file_path: str,
-    conversion_type: str,
-    output_path: Optional[str] = None
-):
-    """
-    RQワーカー用: ファイル変換タスクを処理
-    """
-    from .file_processor import FileProcessor
-    
-    try:
-        return FileProcessor.process_file(file_path, conversion_type)
-    except Exception as e:
-        logger.error(f"Failed to process conversion task for {file_path}: {str(e)}", exc_info=True)
-        return {"status": "error", "error": str(e)}
-
 def get_queue_stats() -> dict:
     """
     キューの統計情報を取得
@@ -156,9 +99,10 @@ def get_queue_stats() -> dict:
     for queue_name in queues:
         queue = Queue(queue_name, connection=redis_conn)
         stats[queue_name] = {
-            'count': queue.count,
+            'queued_jobs': queue.count,
+            'started_jobs': queue.started_job_registry.count,
             'failed_jobs': queue.failed_job_registry.count,
-            'scheduled_jobs': queue.scheduled_job_registry.count
+            'successful_jobs': queue.finished_job_registry.count,
         }
     
     return stats

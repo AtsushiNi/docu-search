@@ -29,8 +29,9 @@ export interface RQJob {
 
 export interface QueueStats {
   [queueName: string]: {
-    count: number;
+    queued_jobs: number;
+    started_jobs: number;
+    successful_jobs: number;
     failed_jobs: number;
-    scheduled_jobs: number;
   };
 }

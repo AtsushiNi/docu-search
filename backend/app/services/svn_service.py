@@ -1,7 +1,6 @@
 import os
 import tempfile
-import asyncio
-from typing import List, Optional
+from typing import Optional
 import hashlib
 import base64
 
@@ -69,7 +68,7 @@ def process_file_task(
         temp_file_path = _download_svn_file_to_temp(file_url, username, password, ip_address)
         
         # ファイルを処理（変換とコンテンツ抽出）
-        result = FileProcessor.process_file(temp_file_path, 'auto')
+        result = FileProcessor.process_file(temp_file_path)
         
         if result["status"] != "success":
             logger.error(f"File processing failed for {file_url}: {result.get('error', 'Unknown error')}")

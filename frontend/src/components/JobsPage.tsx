@@ -47,7 +47,10 @@ const JobsPage: React.FC = () => {
   const formatDateTime = (date: string | null) => {
     if (!date) return '-';
     const d = new Date(date);
-    return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    // 日本時間 (UTC+9) に変換
+    const jstOffset = 9 * 60; // 分単位でのオフセット
+    const jstTime = new Date(d.getTime() + jstOffset * 60 * 1000);
+    return `${jstTime.getMonth() + 1}/${jstTime.getDate()} ${jstTime.getHours().toString().padStart(2, '0')}:${jstTime.getMinutes().toString().padStart(2, '0')}`;
   };
 
   const columns = [
@@ -116,19 +119,31 @@ const JobsPage: React.FC = () => {
 
   const getTotalJobs = () => {
     return Object.values(stats).reduce((total, queueStats) => 
-      total + queueStats.count + queueStats.failed_jobs + queueStats.scheduled_jobs, 0
+      total + queueStats.queued_jobs + queueStats.started_jobs + queueStats.failed_jobs + queueStats.successful_jobs, 0
+    );
+  };
+
+  const getQueuedJobs = () => {
+    return Object.values(stats).reduce((total, queueStats) => 
+      total + queueStats.queued_jobs, 0
+    );
+  };
+
+  const getStartedJobs = () => {
+    return Object.values(stats).reduce((total, queueStats) => 
+      total + queueStats.started_jobs, 0
+    );
+  }
+
+  const getSuccessfulJobs = () => {
+    return Object.values(stats).reduce((total, queueStats) => 
+      total + queueStats.successful_jobs, 0
     );
   };
 
   const getFailedJobs = () => {
     return Object.values(stats).reduce((total, queueStats) => 
       total + queueStats.failed_jobs, 0
-    );
-  };
-
-  const getQueuedJobs = () => {
-    return Object.values(stats).reduce((total, queueStats) => 
-      total + queueStats.count, 0
     );
   };
 
@@ -144,8 +159,8 @@ const JobsPage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={4}></Col>
-        <Col span={5}>
+        <Col span={3}></Col>
+        <Col span={4}>
           <Card>
             <Statistic
               title="実行待ちジョブ"
@@ -154,21 +169,30 @@ const JobsPage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={5}>
+        <Col span={4}>
+          <Card>
+            <Statistic
+              title="実行中ジョブ"
+              value={getStartedJobs()}
+              valueStyle={{ color: '#fa8c16' }}
+            />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic
+              title="成功ジョブ"
+              value={getSuccessfulJobs()}
+              valueStyle={{ color: '#3f8600' }}
+            />
+          </Card>
+        </Col>
+        <Col span={4}>
           <Card>
             <Statistic
               title="失敗ジョブ数"
               value={getFailedJobs()}
               valueStyle={{ color: '#cf1322' }}
-            />
-          </Card>
-        </Col>
-        <Col span={5}>
-          <Card>
-            <Statistic
-              title="実行中ジョブ"
-              value={jobs.filter(job => job.status === 'started').length}
-              valueStyle={{ color: '#fa8c16' }}
             />
           </Card>
         </Col>
@@ -198,12 +222,10 @@ const JobsPage: React.FC = () => {
               allowClear
             >
               <Option value="">すべて</Option>
-              <Option value="queued">queued</Option>
-              <Option value="started">started</Option>
-              <Option value="finished">finished</Option>
-              <Option value="failed">failed</Option>
-              <Option value="deferred">deferred</Option>
-              <Option value="scheduled">scheduled</Option>
+              <Option value="queued">実行待ち</Option>
+              <Option value="started">実行中</Option>
+              <Option value="finished">成功</Option>
+              <Option value="failed">失敗</Option>
             </Select>
             <Button 
               icon={<ReloadOutlined />} 
