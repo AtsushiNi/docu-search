@@ -211,8 +211,9 @@ const JobsPage: React.FC = () => {
             >
               <Option value="">すべて</Option>
               <Option value="default">default</Option>
-              <Option value="import_file">import_file</Option>
               <Option value="explore_folder">explore_folder</Option>
+              <Option value="import_file">import_file</Option>
+              <Option value="convert_pdf">convert_pdf</Option>
             </Select>
             <Select
               placeholder="ステータスでフィルター"

@@ -85,6 +85,32 @@ def enqueue_svn_explore_task(
     logger.info(f"Enqueued SVN explore task for {folder_url}, job_id: {job.id}")
     return job
 
+def enqueue_pdf_conversion_task(
+    file_url: str,
+    file_path: str
+) -> Job:
+    """
+    PDF変換タスクをキューに追加
+    
+    Args:
+        file_url: SVNファイルURL
+        file_path: SVNからダウンロードした一時ファイルのパス
+    
+    Returns:
+        Job: キューに追加されたジョブ
+    """
+    # 循環インポートを避けるため、関数名を文字列で指定
+    queue = get_queue('convert_pdf')
+    job = queue.enqueue(
+        'app.services.svn_service.process_pdf_conversion_task',  # モジュールパスを文字列で指定
+        file_url,
+        file_path,
+        job_timeout='30m'  # 30分のタイムアウト
+    )
+    
+    logger.info(f"Enqueued PDF conversion task for {file_url}, job_id: {job.id}")
+    return job
+
 def get_queue_stats() -> dict:
     """
     キューの統計情報を取得
@@ -93,7 +119,7 @@ def get_queue_stats() -> dict:
         dict: キュー統計情報
     """
     redis_conn = get_redis_connection()
-    queues = ['default', 'import_file', 'file_conversion', 'explore_folder']
+    queues = ['default', 'import_file', 'convert_pdf', 'explore_folder']
     
     stats = {}
     for queue_name in queues:
@@ -124,7 +150,7 @@ def get_job_list(queue_name: Optional[str] = None, status: Optional[str] = None)
     if queue_name:
         queues_to_check = [queue_name]
     else:
-        queues_to_check = ['default', 'import_file', 'file_conversion', 'explore_folder']
+        queues_to_check = ['default', 'import_file', 'convert_pdf', 'explore_folder']
     
     jobs = []
     

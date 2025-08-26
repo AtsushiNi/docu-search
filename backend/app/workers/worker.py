@@ -22,7 +22,7 @@ def start_worker():
         redis_conn = get_redis_connection()
         
         # 監視するキューを指定
-        queues = ['import_file', 'file_conversion', 'explore_folder', 'default']
+        queues = ['import_file', 'convert_pdf', 'explore_folder', 'default']
         
         # ワーカーを作成して起動
         worker = Worker(queues, connection=redis_conn)
