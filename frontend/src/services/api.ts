@@ -55,21 +55,23 @@ export const importSVNResource = async (repoUrl: string, username?: string, pass
   }
 };
 
-export const getDocumentMetadata = async (documentId: string) => {
+export const getDocument = async (documentId: string, includeContent: boolean = false) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/files/${documentId}`);
+    const response = await axios.get(`${API_BASE_URL}/documents/${documentId}`, {
+      params: { include_content: includeContent }
+    });
     const document = response.data;
     
-    // 実際に保存されている項目のみを返す
     return {
       id: documentId,
       title: document.name,
       updated_at: document.updated_at,
       url: document.url,
-      pdf_name: document.pdf_name || null
+      pdf_name: document.pdf_name || null,
+      content: includeContent ? document.content : undefined
     };
   } catch (error) {
-    console.error('Error getting document metadata:', error);
+    console.error('Error getting document:', error);
     throw error;
   }
 };
