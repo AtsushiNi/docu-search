@@ -212,7 +212,7 @@ const FileTree: React.FC<FileTreeProps> = () => {
         onClick={(_event, node) => {
           if (node.isLeaf && node.id) {
             // 詳細ページに遷移
-            window.open(`/documents/${node.id}`, '_blank');
+            window.open(`/documents/${node.id}?view=markdown`, '_blank');
           } else {
             // フォルダノードのクリック処理
             const key = node.key;

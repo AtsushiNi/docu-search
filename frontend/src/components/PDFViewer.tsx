@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useResizeObserver } from '@wojtekmaj/react-hooks';
 import { pdfjs, Document, Page } from 'react-pdf';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { getPDF } from '../services/api';
+import { getPDF, getDocument } from '../services/api';
 import ErrorBoundary from './ErrorBoundary';
+import { Card, Button } from 'antd';
+import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -15,6 +17,14 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 const resizeObserverOptions = {};
 const maxWidth = 10000;
 
+interface DocumentMetadata {
+  id: string;
+  title: string;
+  updated_at: string;
+  url: string;
+  pdf_name?: string | null;
+}
+
 const PDFViewer = ({ documentId }: { documentId: string }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [numPages, setNumPages] = useState<number>();
@@ -22,6 +32,8 @@ const PDFViewer = ({ documentId }: { documentId: string }) => {
   const [containerWidth, setContainerWidth] = useState<number>();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [metadata, setMetadata] = useState<DocumentMetadata | null>(null);
+  const [metadataLoading, setMetadataLoading] = useState<boolean>(true);
 
   const onResize = useCallback<ResizeObserverCallback>((entries) => {
     const [entry] = entries;
@@ -34,6 +46,18 @@ const PDFViewer = ({ documentId }: { documentId: string }) => {
   useResizeObserver(containerRef, resizeObserverOptions, onResize);
 
   useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        setMetadataLoading(true);
+        const data = await getDocument(documentId, false);
+        setMetadata(data);
+      } catch (err) {
+        console.error('メタデータ取得エラー:', err);
+      } finally {
+        setMetadataLoading(false);
+      }
+    };
+
     const fetchPDF = async () => {
       try {
         setLoading(true);
@@ -48,6 +72,8 @@ const PDFViewer = ({ documentId }: { documentId: string }) => {
         setLoading(false);
       }
     };
+
+    fetchMetadata();
     fetchPDF();
 
     // コンポーネントアンマウント時にBlob URLを解放
@@ -64,6 +90,37 @@ const PDFViewer = ({ documentId }: { documentId: string }) => {
 
   return (
     <div style={{ flexGrow: 1, height: 'calc(100vh - 200px)' }}>
+      {metadata && !metadataLoading && (
+        <Card 
+          style={{ marginBottom: '16px' }}
+          title={metadata.title}
+          extra={
+            <div>
+              <Button 
+                icon={<EyeOutlined />}
+                style={{ marginRight: 8 }}
+                onClick={() => window.open(`/documents/${documentId}?view=markdown`, '_blank')}
+              >
+                マークダウンを表示
+              </Button>
+              <Button 
+                icon={<DownloadOutlined />}
+                onClick={() => window.open(metadata.url)}
+              >
+                ダウンロード
+              </Button>
+            </div>
+          }
+        >
+          <div style={{ marginBottom: '8px' }}>
+            <strong>Source URL:</strong> {metadata.url}
+          </div>
+          <div style={{ color: '#666', fontSize: '0.9em' }}>
+            <strong>最終更新:</strong> {new Date(metadata.updated_at).toLocaleString()}
+          </div>
+        </Card>
+      )}
+      
       {loading && (
         <div style={{ 
           display: 'flex', 
@@ -97,7 +154,7 @@ const PDFViewer = ({ documentId }: { documentId: string }) => {
         }}>
           <div style={{ 
             width: '100%',
-            height: 'calc(100vh - 200px)',
+            height: 'calc(100vh - 300px)',
             overflowY: 'scroll',
             maxWidth: 'calc(100% - 2em)',
             margin: '1em 0',

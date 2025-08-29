@@ -41,6 +41,15 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results }) => {
                     PDFを表示
                   </Button>
                   <Button 
+                    icon={<EyeOutlined/>}
+                    color='default'
+                    variant='filled'
+                    onClick={() => window.open(`/documents/${result._id}?view=markdown`, '_blank')}
+                    style={{ marginRight: 8 }}
+                  >
+                    マークダウンを表示
+                  </Button>
+                  <Button 
                     icon={<DownloadOutlined/>} 
                     color='default' 
                     variant='filled'

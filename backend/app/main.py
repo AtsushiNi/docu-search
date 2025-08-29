@@ -74,14 +74,20 @@ async def get_files():
     es_service = ESService()
     return es_service.get_document_list()
 
-@app.get("/files/{id}")
-async def get_file_by_id(id: str):
-    """指定されたIDのドキュメントを取得"""
-    logger.info(f"File request received - id: {id}")
+@app.get("/documents/{id}")
+async def get_document(id: str, include_content: bool = False):
+    """指定されたIDのドキュメントを取得
+    
+    Args:
+        id: ドキュメントID
+        include_content: コンテンツを含めるかどうか（デフォルト: False）
+    """
+    logger.info(f"Document request received - id: {id}, include_content: {include_content}")
     es_service = ESService()
-    result = es_service.get_document_by_id(id)
+    result = es_service.get_document_by_id(id, include_content)
     if not result["found"]:
         raise HTTPException(status_code=404, detail="Document not found")
+    
     return result["_source"]
 
 @app.get("/pdf/{filename}")

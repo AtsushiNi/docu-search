@@ -190,7 +190,7 @@ def process_pdf_conversion_task(
         # 既存のドキュメントを取得してPDF情報を更新
         es_service = ESService()
         doc_id = _url_to_id(file_url)
-        existing_doc = es_service.get_document(doc_id)
+        existing_doc = es_service.get_document_by_id(doc_id, include_content=False)
         
         if existing_doc:
             # 既存ドキュメントを更新
