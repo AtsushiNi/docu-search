@@ -22,7 +22,7 @@ export interface RQJob {
   result: string | null;
   exc_info: string | null;
   function: string;
-  args: unknown[];
+  first_arg: unknown;
   kwargs: Record<string, unknown>;
   error?: string;
 }

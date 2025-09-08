@@ -1,14 +1,17 @@
-from fastapi import FastAPI, Depends, HTTPException, Body
+import pprint
+from fastapi import FastAPI, Depends, HTTPException, Body, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 import os
+import uuid
+from typing import List
 
 from .logging_config import setup_logging
 from .services.elasticsearch_service import ESService
 from .services.svn_service import (
     import_resource as svn_import
 )
-from .services.queue_service import get_queue_stats, get_job_list
+from .services.queue_service import get_queue_stats, get_job_list, enqueue_local_file_upload_task
 from .models.svn_models import SVNExploreRequest, SVNImportRequest
 
 app = FastAPI()
@@ -124,3 +127,74 @@ async def get_jobs_list_endpoint(queue_name: str = None, status: str = None):
     logger.info(f"Job list request received - queue_name: {queue_name}, status: {status}")
     jobs = get_job_list(queue_name, status)
     return jobs
+
+@app.post("/upload/local-folder")
+async def upload_local_folder(
+    files: List[UploadFile] = File(...),
+    absolute_paths: List[str] = Form(...),
+    parent_job_id: str = Form(None)
+):
+    """
+    ローカルフォルダからファイルをアップロード
+    
+    Args:
+        files: アップロードするファイルリスト
+        absolute_paths: 各ファイルの絶対パスリスト
+        parent_job_id: 親ジョブID（進捗追跡用）
+    
+    Returns:
+        dict: アップロード結果
+    """
+    logger.info(f"Local folder upload request received - files: {len(files)}, parent_job_id: {parent_job_id}")
+    
+    # バリデーション
+    if len(files) != len(files) != len(absolute_paths):
+        raise HTTPException(
+            status_code=400,
+            detail="Number of files and absolute paths must match"
+        )
+    
+    # 親ジョブIDが指定されていない場合は生成
+    if not parent_job_id:
+        parent_job_id = str(uuid.uuid4())
+    
+    results = []
+    total_files = len(files)
+    
+    for i, (file, absolute_path) in enumerate(zip(files, absolute_paths)):
+        try:
+            file_data = await file.read()
+            # ファイルをキューに追加
+            job = enqueue_local_file_upload_task(
+                absolute_path=absolute_path,
+                file_data=file_data,
+                file_name=file.filename,
+                job_id=parent_job_id
+            )
+            
+            results.append({
+                "success": True,
+                "file_name": file.filename,
+                "absolute_path": absolute_path,
+                "job_id": job.id,
+                "status": "queued"
+            })
+            
+            logger.info(f"Queued file {i+1}/{total_files}: {file.filename}")
+            
+        except Exception as e:
+            logger.error(f"Failed to process file {file.filename}: {str(e)}")
+            results.append({
+                "success": False,
+                "file_name": file.filename,
+                "absolute_path": absolute_path,
+                "error": str(e)
+            })
+    
+    return {
+        "parent_job_id": parent_job_id,
+        "total_files": total_files,
+        "successful_uploads": sum(1 for r in results if r["success"]),
+        "failed_uploads": sum(1 for r in results if not r["success"]),
+        "results": results
+    }

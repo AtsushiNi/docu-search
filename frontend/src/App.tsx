@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ConfigProvider, Layout, Modal, Form, message } from 'antd'
+import { ConfigProvider, Layout, Modal, Form, message, Dropdown } from 'antd'
 import jaJP from 'antd/locale/ja_JP'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import './App.css'
@@ -8,32 +8,38 @@ import DetailPage from './components/DetailPage'
 import JobsPage from './components/JobsPage'
 import FileTree from './components/FileTree'
 import SVNResourceForm from './components/SVNResourceForm'
+import LocalFolderUpload from './components/LocalFolderUpload'
 import { importSVNResource } from './services/api'
 
 const { Sider, Content } = Layout
 
 const App: React.FC = () => {
   const [messageApi, contextHolder] = message.useMessage()
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isSVNModalOpen, setIsSVNModalOpen] = useState(false)
+  const [isLocalFolderModalOpen, setIsLocalFolderModalOpen] = useState(false)
   const [form] = Form.useForm()
 
-  const showModal = () => {
-    setIsModalOpen(true)
+  const showSVNModal = () => {
+    setIsSVNModalOpen(true)
   }
 
-  const handleOk = () => {
+  const showLocalFolderModal = () => {
+    setIsLocalFolderModalOpen(true)
+  }
+
+  const handleSVNOk = () => {
     form
       .validateFields()
       .then(async (values: { svnUrl: string; username?: string; password?: string; ipAddress?: string }) => {
         try {
           await importSVNResource(values.svnUrl, values.username, values.password, values.ipAddress)
           messageApi.success('SVNリソースのインポートを開始しました')
-          setIsModalOpen(false)
+          setIsSVNModalOpen(false)
           form.resetFields()
         } catch (error) {
           console.error('SVNリソースのインポートに失敗しました:', error)
           messageApi.error('SVNリソースのインポートに失敗しました')
-          setIsModalOpen(false)
+          setIsSVNModalOpen(false)
         }
       })
       .catch((info: unknown) => {
@@ -41,8 +47,12 @@ const App: React.FC = () => {
       })
   }
 
-  const handleCancel = () => {
-    setIsModalOpen(false)
+  const handleSVNCancel = () => {
+    setIsSVNModalOpen(false)
+  }
+
+  const handleLocalFolderCancel = () => {
+    setIsLocalFolderModalOpen(false)
   }
 
   const AppLayout = ({ children }: { children: React.ReactNode }) => (
@@ -68,25 +78,58 @@ const App: React.FC = () => {
           borderTop: '1px solid #eee',
           borderRadius: '4px',
           position: 'fixed',
-          bottom: 70,
+          bottom: 80,
           left: 0,
           width: '350px',
           backgroundColor: 'white'
         }}>
-          <button 
-            className="search-button" 
-            style={{ width: '100%' }}
-            onClick={showModal}
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'svn',
+                  label: 'SVNリソース',
+                  onClick: showSVNModal
+                },
+                {
+                  key: 'local',
+                  label: 'ローカルフォルダ',
+                  onClick: showLocalFolderModal
+                }
+              ]
+            }}
+            trigger={['click']}
           >
-            Add/Update SVN Resource
-          </button>
+            <button 
+              className="search-button" 
+              style={{ width: '100%' }}
+            >
+              リソースの追加
+            </button>
+          </Dropdown>
           <Modal 
-            title="Add/Update SVN Resource" 
-            open={isModalOpen}
-            onOk={handleOk}
-            onCancel={handleCancel}
+            title="SVNリソースの追加/更新" 
+            open={isSVNModalOpen}
+            onOk={handleSVNOk}
+            onCancel={handleSVNCancel}
           >
             <SVNResourceForm form={form} />
+          </Modal>
+          <Modal 
+            title="ローカルフォルダからアップロード" 
+            open={isLocalFolderModalOpen}
+            onCancel={handleLocalFolderCancel}
+            footer={null}
+            width={600}
+          >
+            <LocalFolderUpload 
+              onUploadComplete={() => {
+                messageApi.success('ローカルフォルダのアップロードが完了しました');
+                setIsLocalFolderModalOpen(false);
+                // 必要に応じてファイルツリーの更新などを実装
+              }}
+              onCancel={handleLocalFolderCancel}
+            />
           </Modal>
         </div>
         <div style={{

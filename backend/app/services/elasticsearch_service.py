@@ -9,6 +9,7 @@ class ElasticsearchSettings(BaseSettings):
     es_host: str = "elasticsearch"
     es_port: str = "9200"
     verify_certs: bool = False
+    timeout: int = 60  # リクエストタイムアウト（秒）
 
 class ESService:
     """Elasticsearchサービスクラス"""
@@ -16,7 +17,8 @@ class ESService:
         settings = ElasticsearchSettings()
         self.es = Elasticsearch(
             hosts=[f"http://{settings.es_host}:{settings.es_port}"],
-            verify_certs=settings.verify_certs
+            verify_certs=settings.verify_certs,
+            timeout=settings.timeout,  # 接続タイムアウト（秒）
         )
         self.index_name = "documents"
         self._initialize_index()

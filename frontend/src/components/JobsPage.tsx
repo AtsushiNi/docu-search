@@ -85,12 +85,12 @@ const JobsPage: React.FC = () => {
     },
     {
       title: 'ファイルパス',
-      dataIndex: 'args',
-      key: 'args',
+      dataIndex: 'first_arg',
+      key: 'first_arg',
       width: 120,
-      render: (args: unknown[]) => (
+      render: (first_arg: unknown) => (
         <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>
-          {args && args.length > 0 ? String(args[0]) : '-'}
+          {first_arg ? String(first_arg) : '-'}
         </span>
       )
     },
@@ -214,6 +214,7 @@ const JobsPage: React.FC = () => {
               <Option value="explore_folder">explore_folder</Option>
               <Option value="import_file">import_file</Option>
               <Option value="convert_pdf">convert_pdf</Option>
+              <Option value="upload_local">upload_local</Option>
             </Select>
             <Select
               placeholder="ステータスでフィルター"

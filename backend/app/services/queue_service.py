@@ -7,6 +7,15 @@ from rq.job import Job
 from ..logging_config import setup_logging
 logger = setup_logging()
 
+# 利用可能なすべてのキューのリスト
+ALL_QUEUES = [
+    'default',
+    'import_file',
+    'convert_pdf', 
+    'explore_folder',
+    'upload_local'
+]
+
 # Redis接続設定
 def get_redis_connection():
     """Redis接続を取得"""
@@ -74,7 +83,7 @@ def enqueue_svn_explore_task(
     # 循環インポートを避けるため、関数名を文字列で指定
     queue = get_queue('explore_folder')
     job = queue.enqueue(
-        'app.services.svn_service.process_explore_task',  # モジュールパスを文字列で指定
+        'app.services.svn_service.process_explore_task',
         folder_url,
         username,
         password,
@@ -93,8 +102,8 @@ def enqueue_pdf_conversion_task(
     PDF変換タスクをキューに追加
     
     Args:
-        file_url: SVNファイルURL
-        file_path: SVNからダウンロードした一時ファイルのパス
+        file_url: ファイルURL
+        file_path: 一時ファイルのパス
     
     Returns:
         Job: キューに追加されたジョブ
@@ -102,13 +111,45 @@ def enqueue_pdf_conversion_task(
     # 循環インポートを避けるため、関数名を文字列で指定
     queue = get_queue('convert_pdf')
     job = queue.enqueue(
-        'app.services.svn_service.process_pdf_conversion_task',  # モジュールパスを文字列で指定
+        'app.services.file_processor_service.process_pdf_conversion_task',
         file_url,
         file_path,
         job_timeout='30m'  # 30分のタイムアウト
     )
     
     logger.info(f"Enqueued PDF conversion task for {file_url}, job_id: {job.id}")
+    return job
+
+def enqueue_local_file_upload_task(
+    absolute_path: str,
+    file_data: bytes,
+    file_name: str,
+    job_id: str
+) -> Job:
+    """
+    ローカルファイルアップロードタスクをキューに追加
+    
+    Args:
+        absolute_path: 絶対パス（完全なファイルパス）
+        file_data: ファイルデータ（バイト）
+        file_name: ファイル名
+        job_id: 親ジョブID（進捗追跡用）
+    
+    Returns:
+        Job: キューに追加されたジョブ
+    """
+    # 循環インポートを避けるため、関数名を文字列で指定
+    queue = get_queue('upload_local')
+    job = queue.enqueue(
+        'app.services.file_upload_service.process_local_file_upload',
+        absolute_path,
+        file_data,
+        file_name,
+        job_id,
+        job_timeout='10m'  # 10分のタイムアウト
+    )
+    
+    logger.info(f"Enqueued local file upload task for {file_name}, job_id: {job.id}")
     return job
 
 def get_queue_stats() -> dict:
@@ -119,10 +160,9 @@ def get_queue_stats() -> dict:
         dict: キュー統計情報
     """
     redis_conn = get_redis_connection()
-    queues = ['default', 'import_file', 'convert_pdf', 'explore_folder']
     
     stats = {}
-    for queue_name in queues:
+    for queue_name in ALL_QUEUES:
         queue = Queue(queue_name, connection=redis_conn)
         stats[queue_name] = {
             'queued_jobs': queue.count,
@@ -150,7 +190,7 @@ def get_job_list(queue_name: Optional[str] = None, status: Optional[str] = None)
     if queue_name:
         queues_to_check = [queue_name]
     else:
-        queues_to_check = ['default', 'import_file', 'convert_pdf', 'explore_folder']
+        queues_to_check = ALL_QUEUES
     
     jobs = []
     
@@ -188,6 +228,15 @@ def get_job_list(queue_name: Optional[str] = None, status: Optional[str] = None)
         for job_id in job_ids:
             try:
                 job = Job.fetch(job_id, connection=redis_conn)
+                # ジョブ結果がバイトデータの場合、Base64エンコードして返す
+                result_value = None
+                if job.result:
+                    if isinstance(job.result, bytes):
+                        import base64
+                        result_value = base64.b64encode(job.result).decode('utf-8')
+                    else:
+                        result_value = str(job.result)
+                
                 jobs.append({
                     'id': job.id,
                     'queue': q_name,
@@ -195,10 +244,10 @@ def get_job_list(queue_name: Optional[str] = None, status: Optional[str] = None)
                     'created_at': job.created_at.isoformat() if job.created_at else None,
                     'started_at': job.started_at.isoformat() if job.started_at else None,
                     'ended_at': job.ended_at.isoformat() if job.ended_at else None,
-                    'result': str(job.result) if job.result else None,
+                    'result': result_value,
                     'exc_info': job.exc_info,
                     'function': job.func_name,
-                    'args': job.args,
+                    'first_arg': job.args[0] if job.args and len(job.args) > 0 else None,
                     'kwargs': job.kwargs
                 })
             except Exception as e:
