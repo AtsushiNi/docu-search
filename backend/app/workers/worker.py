@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """
 RQワーカープロセス起動スクリプト
-SVNインポートタスクを処理するワーカーを起動します
 """
 
-import os
-import logging
+import sys
 from rq import Worker
-from rq.contrib.sentry import register_sentry
 
 from ..logging_config import setup_logging
-from ..services.queue_service import get_redis_connection
+from ..services.queue_service import ALL_QUEUES, get_redis_connection
 
 # ログ設定
 logger = setup_logging()
@@ -21,13 +18,10 @@ def start_worker():
         # Redis接続を取得
         redis_conn = get_redis_connection()
         
-        # 監視するキューを指定
-        queues = ['import_file', 'convert_pdf', 'explore_folder', 'default']
-        
         # ワーカーを作成して起動
-        worker = Worker(queues, connection=redis_conn)
+        worker = Worker(ALL_QUEUES, connection=redis_conn)
         
-        logger.info(f"Starting RQ worker for queues: {queues}")
+        logger.info(f"Starting RQ worker for queues: {ALL_QUEUES}")
         logger.info("Worker is ready to process jobs")
         
         # ワーカーを起動（ブロッキング呼び出し）

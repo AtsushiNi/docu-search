@@ -97,3 +97,35 @@ export const getQueueStats = async () => {
     throw error;
   }
 };
+
+export const uploadLocalFolder = async (files: File[], absolutePaths: string[], parentJobId: string) => {
+  try {
+    const formData = new FormData();
+    
+    // 各ファイルをFormDataに追加
+    files.forEach((file, index) => {
+      formData.append('files', file);
+      formData.append('absolute_paths', absolutePaths[index]);
+    });
+    
+    formData.append('parent_job_id', parentJobId);
+
+    const response = await axios.post(`${API_BASE_URL}/upload/local-folder`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        // 進捗状況の処理（必要に応じて実装）
+        if (progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`Upload progress: ${percentCompleted}%`);
+        }
+      }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading local folder:', error);
+    throw error;
+  }
+};
