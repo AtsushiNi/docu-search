@@ -2,11 +2,14 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000';
 
-export const searchDocuments = async (query: string, searchType: string = 'exact') => {
+export const searchDocuments = async (query: string, searchType: string = 'exact', urlQuery?: string) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/search`, {
-      params: { query, search_type: searchType }
-    });
+    const params: { query: string; search_type: string; url_query?: string } = { query, search_type: searchType };
+    if (urlQuery) {
+      params.url_query = urlQuery;
+    }
+    
+    const response = await axios.get(`${API_BASE_URL}/search`, { params });
     return response.data.results;
   } catch (error) {
     console.error('Error searching documents:', error);
