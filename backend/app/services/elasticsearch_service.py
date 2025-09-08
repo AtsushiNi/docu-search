@@ -73,7 +73,17 @@ class ESService:
                                 "analyzer": "kuromoji_analyzer"
                             },
                             "updated_at": { "type": "date" },
-                            "pdf_name": { "type": "text" }
+                            "pdf_name": { "type": "text" },
+                            "sort_name": {
+                                "type": "text",
+                                "fields": {
+                                    "sort": {
+                                        "type": "icu_collation_keyword",
+                                        "language": "ja",
+                                        "country": "JP"
+                                    }
+                                }
+                            }
                             }
                         }
                     }
@@ -90,7 +100,8 @@ class ESService:
             "url": url,
             "name": file_name,
             "content": file_content,
-            "updated_at": datetime.datetime.now().astimezone().isoformat()
+            "updated_at": datetime.datetime.now().astimezone().isoformat(),
+            "sort_name": url
         }
         
         # PDFメタデータがあれば追加
@@ -115,30 +126,58 @@ class ESService:
                 body=doc_body
             )
 
-    def search_documents(self, query: str, search_type: str = "exact") -> Dict[str, Any]:
+    def search_documents(self, query: str, search_type: str = "exact", url_query: str = None) -> Dict[str, Any]:
         """ドキュメントを検索"""
-        if search_type == "fuzzy":
-            # 曖昧検索
-            search_body = {
-                "query": {
+        # ベースとなるクエリ条件
+        must_conditions = []
+        
+        # コンテンツ検索条件
+        if query:
+            if search_type == "fuzzy":
+                # 曖昧検索
+                must_conditions.append({
                     "match": {
                         "content": {
                             "query": query,
                             "analyzer": "kuromoji_analyzer"
                         }
                     }
-                }
-            }
-        else:
-            # 単語検索
-            search_body = {
-                "query": {
+                })
+            else:
+                # 単語検索
+                must_conditions.append({
                     "match_phrase": {
                         "content": {
                             "query": query,
                             "analyzer": "kuromoji_analyzer"
                         }
                     }
+                })
+        
+        # URL検索条件
+        if url_query:
+            must_conditions.append({
+                "wildcard": {
+                    "url": {
+                        "value": f"*{url_query}*"
+                    }
+                }
+            })
+        
+        # 検索クエリの構築
+        if must_conditions:
+            search_body = {
+                "query": {
+                    "bool": {
+                        "must": must_conditions
+                    }
+                }
+            }
+        else:
+            # 検索条件がない場合は全件取得
+            search_body = {
+                "query": {
+                    "match_all": {}
                 }
             }
         
@@ -167,6 +206,13 @@ class ESService:
                 "query": {
                     "match_all": {}
                 },
+                "sort": [
+                    {
+                        "sort_name.sort": {
+                            "order": "asc"
+                        }
+                    }
+                ],
                 "size": 10000  # 十分大きな数を指定して全件取得
             }
         )
