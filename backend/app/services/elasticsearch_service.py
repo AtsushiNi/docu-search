@@ -258,3 +258,49 @@ class ESService:
             body=update_body
         )
         logging.info(f"Updated PDF info for document {doc_id}: {pdf_name}")
+
+    def delete_documents(self, doc_ids: list) -> Dict[str, Any]:
+        """指定されたIDのドキュメントを削除
+        
+        Args:
+            doc_ids: 削除するドキュメントIDのリスト
+            
+        Returns:
+            dict: 削除結果
+        """
+        if not doc_ids:
+            return {"deleted": 0, "errors": []}
+        
+        try:
+            # バルク削除リクエストを作成
+            operations = []
+            for doc_id in doc_ids:
+                operations.append({"delete": {"_index": self.index_name, "_id": doc_id}})
+            
+            # バルク削除を実行
+            response = self.es.bulk(operations=operations)
+            
+            # 結果を集計
+            deleted_count = 0
+            errors = []
+            
+            for item in response.get('items', []):
+                if 'delete' in item:
+                    delete_result = item['delete']
+                    if delete_result.get('status') == 200:
+                        deleted_count += 1
+                    else:
+                        errors.append({
+                            'id': delete_result.get('_id'),
+                            'error': delete_result.get('error', {}).get('reason', 'Unknown error')
+                        })
+            
+            logging.info(f"Deleted {deleted_count} documents, errors: {len(errors)}")
+            return {
+                "deleted": deleted_count,
+                "errors": errors
+            }
+            
+        except Exception as e:
+            logging.error(f"Failed to delete documents: {e}")
+            raise

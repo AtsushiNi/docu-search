@@ -132,3 +132,17 @@ export const uploadLocalFolder = async (files: File[], absolutePaths: string[], 
     throw error;
   }
 };
+
+export const deleteFiles = async (fileIds: string[]) => {
+  try {
+    console.log('DELETEリクエストを送信:', `${API_BASE_URL}/files`, fileIds);
+    const response = await axios.delete(`${API_BASE_URL}/files`, {
+      data: { file_ids: fileIds }
+    });
+    console.log('DELETEリクエスト成功:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting files:', error);
+    throw error;
+  }
+};

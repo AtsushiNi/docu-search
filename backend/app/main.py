@@ -77,6 +77,30 @@ async def get_files():
     es_service = ESService()
     return es_service.get_document_list()
 
+@app.delete("/files")
+async def delete_files(file_ids: List[str] = Body(..., embed=True)):
+    """指定されたIDのファイルを削除
+    
+    Args:
+        file_ids: 削除するファイルIDのリスト
+    """
+    logger.info(f"File delete request received - file_ids: {file_ids}")
+    es_service = ESService()
+    result = es_service.delete_documents(file_ids)
+    
+    if result["errors"]:
+        logger.warning(f"Some files failed to delete: {result['errors']}")
+        return JSONResponse(
+            status_code=207,  # Multi-Status
+            content={
+                "message": f"Deleted {result['deleted']} files, {len(result['errors'])} failed",
+                "deleted": result["deleted"],
+                "errors": result["errors"]
+            }
+        )
+    
+    return {"message": f"Successfully deleted {result['deleted']} files", "deleted": result["deleted"]}
+
 @app.get("/documents/{id}")
 async def get_document(id: str, include_content: bool = False):
     """指定されたIDのドキュメントを取得
