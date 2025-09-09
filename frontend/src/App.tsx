@@ -6,6 +6,7 @@ import './App.css'
 import SearchPage from './components/SearchPage'
 import DetailPage from './components/DetailPage'
 import JobsPage from './components/JobsPage'
+import FilesPage from './components/FilesPage'
 import FileTree from './components/FileTree'
 import SVNResourceForm from './components/SVNResourceForm'
 import LocalFolderUpload from './components/LocalFolderUpload'
@@ -142,12 +143,20 @@ const App: React.FC = () => {
           bottom: 0,
           left: 0,
         }}>
-          <button 
-            style={{ width: '100%', backgroundColor: '#f0f0f0', borderRadius: 4 }}
-            onClick={() => window.location.href = '/jobs'}
-          >
-            ジョブ管理
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              style={{ flex: 1, backgroundColor: '#f0f0f0', borderRadius: 4 }}
+              onClick={() => window.location.href = '/jobs'}
+            >
+              ジョブ管理
+            </button>
+            <button 
+              style={{ flex: 1, backgroundColor: '#f0f0f0', borderRadius: 4 }}
+              onClick={() => window.location.href = '/files'}
+            >
+              ファイル管理
+            </button>
+          </div>
         </div>
       </Sider>
       <Layout style={{ width: "calc(100vw - 350px)" }}>
@@ -175,6 +184,11 @@ const App: React.FC = () => {
           <Route path="/jobs" element={
             <AppLayout>
               <JobsPage />
+            </AppLayout>
+          } />
+          <Route path="/files" element={
+            <AppLayout>
+              <FilesPage />
             </AppLayout>
           } />
         </Routes>

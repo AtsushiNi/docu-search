@@ -1,15 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Tree, Input } from 'antd';
 import { getFileList } from '../services/api';
-
-interface TreeNode {
-  title: string | React.ReactNode;
-  key: string;
-  url: string;
-  id?: string;
-  isLeaf: boolean;
-  children?: TreeNode[];
-}
+import { 
+  isStringTitle, 
+  buildTreeData 
+} from '../utils/fileTreeUtils';
+import type { TreeNode } from '../types';
 
 const { Search } = Input;
 
@@ -21,81 +17,12 @@ const FileTree: React.FC<FileTreeProps> = () => {
   const [searchValue, setSearchValue] = useState('');
   const [autoExpandParent, setAutoExpandParent] = useState(true);
 
-  const isStringTitle = (title: string | React.ReactNode): title is string => {
-    return typeof title === 'string';
-  };
-
-  const compactTreeNodes = (node: TreeNode): TreeNode => {
-    if (node.children && node.children.length === 1 && !node.children[0].isLeaf) {
-      const child = compactTreeNodes(node.children[0]);
-      if (isStringTitle(node.title) && isStringTitle(child.title)) {
-        return {
-          title: `${node.title}/${child.title}`,
-          key: node.key,
-          url: child.url,
-          isLeaf: child.isLeaf,
-          children: child.children
-        };
-      }
-    }
-    return {
-      ...node,
-      children: node.children ? node.children.map(compactTreeNodes) : undefined
-    };
-  };
-
-  const extractUrlScheme = (path: string): {scheme: string | null, path: string} => {
-    const urlMatch = path.match(/^((https?|svn):\/\/)(.*)/);
-    return {
-      scheme: urlMatch ? urlMatch[1] : null,
-      path: urlMatch ? urlMatch[3] : path
-    };
-  };
-
-  const buildFileTree = (files: {url: string, id: string}[]): TreeNode[] => {
-    const root: TreeNode = { title: 'Root', key: 'root', url: '', isLeaf: false, children: [] };
-    
-    files.forEach((file, index) => {
-      const {scheme, path: cleanPath} = extractUrlScheme(file.url);
-      const parts = cleanPath.split('/').filter(part => part !== '');
-      if (scheme && parts.length > 0) {
-        parts[0] = scheme + parts[0];
-      }
-      let current = root;
-      
-      parts.forEach((part, i) => {
-        const existing = current.children?.find(child => child.title === part);
-        
-        if (existing) {
-          current = existing;
-        } else {
-          const nodePath = parts.slice(0, i + 1).join('/');
-          const newNode: TreeNode = {
-            title: part,
-            key: `${index}-${i}`,
-            url: nodePath,
-            id: i === parts.length - 1 ? file.id : undefined,
-            isLeaf: i === parts.length - 1
-          };
-          
-          if (!current.children) {
-            current.children = [];
-          }
-          
-          current.children.push(newNode);
-          current = newNode;
-        }
-      });
-    });
-    const mergedChildren = (root.children || []).map(compactTreeNodes);
-    return mergedChildren;
-  };
 
   useEffect(() => {
     const fetchFiles = async () => {
       try {
         const files = await getFileList();
-        const treeData = buildFileTree(files.map((f: {url: string, id: string}) => ({url: f.url, id: f.id})));
+        const treeData = buildTreeData(files.map((f: {url: string, id: string}) => ({url: f.url, id: f.id, filename: f.url.split('/').pop()})));
         setFileTree(treeData);
       } catch (error) {
         console.error('Failed to load files:', error);
