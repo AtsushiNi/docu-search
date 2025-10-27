@@ -1,5 +1,6 @@
 import os
-from typing import Optional, Dict, Any
+import re
+from typing import Optional, Dict, Any, List
 
 from ..logging_config import setup_logging
 from .elasticsearch_service import ESService
@@ -38,6 +39,10 @@ def process_file(
         # 結果から情報を抽出
         file_content = result.get("content", "")
         
+        # セクション抽出
+        print(file_content)
+        sections = divide_toplevel_sections(file_content)
+        
         # Elasticsearchにドキュメントを保存
         doc_id = url_to_id(file_url)
         file_name = file_url.split('/')[-1]
@@ -46,7 +51,7 @@ def process_file(
             doc_id,
             file_url,
             file_name,
-            file_content,
+            sections,
             pdf_name=None
         )
         
@@ -173,3 +178,69 @@ def _read_file_content(file_path: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to process file {file_path}: {str(e)}", exc_info=True)
         return {"status": "error", "error": str(e)}
+
+def divide_toplevel_sections(content: str) -> List[Dict[str, str]]:
+    """
+    マークダウンまたはテキストコンテンツから一番レベルの高い見出しでセクションを抽出
+    
+    Args:
+        content: 抽出元のコンテンツ
+    
+    Returns:
+        List[Dict[str, str]]: セクションのリスト（各セクションはtitleとcontentを持つ）
+    """
+    if not content:
+        return []
+    
+    # マークダウンの見出しパターン（#から######まで）
+    heading_pattern = r'^(#{1,6})\s+(.+)$'
+    lines = content.split('\n')
+    
+    sections = []
+    current_title = None
+    current_content = []
+    highest_level = None
+    
+    for line in lines:
+        # 見出しを検出
+        heading_match = re.match(heading_pattern, line.strip())
+        if heading_match:
+            level = len(heading_match.group(1))  # #の数でレベルを決定
+            title = heading_match.group(2).strip()
+            
+            # 最初の見出しまたは現在より高いレベルの見出しを検出した場合
+            if highest_level is None or level <= highest_level:
+                # 前のセクションがあれば保存
+                if current_title is not None:
+                    sections.append({
+                        "title": current_title,
+                        "content": '\n'.join(current_content).strip()
+                    })
+                
+                # 新しいセクションを開始
+                current_title = title
+                current_content = []
+                highest_level = level
+            else:
+                # 現在のセクションにコンテンツとして追加（サブ見出し）
+                current_content.append(line)
+        else:
+            # 現在のセクションにコンテンツを追加
+            if current_title is not None:
+                current_content.append(line)
+    
+    # 最後のセクションを保存
+    if current_title is not None:
+        sections.append({
+            "title": current_title,
+            "content": '\n'.join(current_content).strip()
+        })
+    
+    # 見出しが見つからなかった場合は全体を1つのセクションとして扱う
+    if not sections and content.strip():
+        sections.append({
+            "title": "",  # タイトルなし
+            "content": content.strip()
+        })
+    
+    return sections

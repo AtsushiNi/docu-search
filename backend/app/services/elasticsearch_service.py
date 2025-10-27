@@ -68,9 +68,18 @@ class ESService:
                             "properties": {
                             "url": { "type": "keyword" },
                             "name": { "type": "text" },
-                            "content": {
-                                "type": "text",
-                                "analyzer": "kuromoji_analyzer"
+                            "sections": {
+                                "type": "object",
+                                "properties": {
+                                    "title": { 
+                                        "type": "text",
+                                        "analyzer": "kuromoji_analyzer"
+                                    },
+                                    "content": {
+                                        "type": "text", 
+                                        "analyzer": "kuromoji_analyzer"
+                                    }
+                                }
                             },
                             "updated_at": { "type": "date" },
                             "pdf_name": { "type": "text" },
@@ -93,13 +102,13 @@ class ESService:
                 logging.error(f"Failed to create index: {e}")
                 raise
 
-    def save_document(self, doc_id: str, url: str, file_name: str, file_content: str,  
-                    pdf_name: str = None) -> None:
-        """ドキュメントを保存（同じURLの場合は更新）"""
+    def save_document(self, doc_id: str, url: str, file_name: str, 
+                                  sections: list, pdf_name: str = None) -> None:
+        """セクション分割済みのドキュメントを保存（同じURLの場合は更新）"""
         doc_body = {
             "url": url,
             "name": file_name,
-            "content": file_content,
+            "sections": sections,
             "updated_at": datetime.datetime.now().astimezone().isoformat(),
             "sort_name": url
         }
@@ -131,26 +140,54 @@ class ESService:
         # ベースとなるクエリ条件
         must_conditions = []
         
-        # コンテンツ検索条件
+        # セクション検索条件
         if query:
             if search_type == "fuzzy":
-                # 曖昧検索
+                # 曖昧検索（タイトルとコンテンツの両方を検索）
                 must_conditions.append({
-                    "match": {
-                        "content": {
-                            "query": query,
-                            "analyzer": "kuromoji_analyzer"
-                        }
+                    "bool": {
+                        "should": [
+                            {
+                                "match": {
+                                    "sections.title": {
+                                        "query": query,
+                                        "analyzer": "kuromoji_analyzer"
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "sections.content": {
+                                        "query": query,
+                                        "analyzer": "kuromoji_analyzer"
+                                    }
+                                }
+                            }
+                        ]
                     }
                 })
             else:
-                # 単語検索
+                # 単語検索（タイトルとコンテンツの両方を検索）
                 must_conditions.append({
-                    "match_phrase": {
-                        "content": {
-                            "query": query,
-                            "analyzer": "kuromoji_analyzer"
-                        }
+                    "bool": {
+                        "should": [
+                            {
+                                "match_phrase": {
+                                    "sections.title": {
+                                        "query": query,
+                                        "analyzer": "kuromoji_analyzer"
+                                    }
+                                }
+                            },
+                            {
+                                "match_phrase": {
+                                    "sections.content": {
+                                        "query": query,
+                                        "analyzer": "kuromoji_analyzer"
+                                    }
+                                }
+                            }
+                        ]
                     }
                 })
         
@@ -181,10 +218,15 @@ class ESService:
                 }
             }
         
-        # ハイライト設定を追加
+        # ハイライト設定を追加（セクションのタイトルとコンテンツをハイライト）
         search_body["highlight"] = {
             "fields": {
-                "content": {
+                "sections.title": {
+                    "pre_tags": ["<mark>"],
+                    "post_tags": ["</mark>"],
+                    "number_of_fragments": 0
+                },
+                "sections.content": {
                     "pre_tags": ["<mark>"],
                     "post_tags": ["</mark>"],
                     "number_of_fragments": 100
@@ -230,9 +272,9 @@ class ESService:
             doc_id: ドキュメントID
             include_content: コンテンツを含めるかどうか
         """
-        source_fields = ["url", "name", "updated_at", "pdf_name"]
+        source_fields = ["url", "name", "updated_at", "pdf_name", "sections"]
         if include_content:
-            source_fields.append("content")
+            source_fields.append("sections")
             
         try:
             return self.es.get(

@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getDocument } from '../services/api';
 import ErrorBoundary from './ErrorBoundary';
-import { Card, Spin, Alert } from 'antd';
+import { Card, Spin, Alert, Tabs } from 'antd';
 import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 
@@ -17,13 +17,17 @@ interface DocumentMetadata {
   updated_at: string;
   url: string;
   pdf_name?: string | null;
+  sections?: Array<{
+    title?: string;
+    content: string;
+  }>;
 }
 
 const MarkdownViewer = ({ documentId }: MarkdownViewerProps) => {
-  const [markdownContent, setMarkdownContent] = useState<string>('');
   const [metadata, setMetadata] = useState<DocumentMetadata | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('0');
 
   useEffect(() => {
     const fetchDocumentContent = async () => {
@@ -34,7 +38,6 @@ const MarkdownViewer = ({ documentId }: MarkdownViewerProps) => {
         // 1回のAPI呼び出しでメタデータとコンテンツの両方を取得
         const documentData = await getDocument(documentId, true);
         setMetadata(documentData);
-        setMarkdownContent(documentData.content || '');
       } catch (err) {
         console.error('マークダウン読み込みエラー:', err);
         setError('マークダウンの読み込みに失敗しました');
@@ -111,61 +114,93 @@ const MarkdownViewer = ({ documentId }: MarkdownViewerProps) => {
         </Card>
       )}
       
-      <div style={{ 
-        width: '100%',
-        height: 'calc(100vh - 300px)',
-        overflowY: 'auto',
-        padding: '20px',
-        border: '1px solid #d9d9d9',
-        borderRadius: '6px',
-        backgroundColor: '#fff'
-      }}>
-        <div className="markdown-content">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              table: (props) => (
-                <table className="markdown-table" {...props} />
-              ),
-              th: (props) => (
-                <th className="markdown-table-header" {...props} />
-              ),
-              td: ({ children, ...props }) => {
-                // テキスト内の改行を<br>タグに変換
-                const processLineBreaks = (content: React.ReactNode): React.ReactNode => {
-                  if (typeof content === 'string') {
-                    console.log("content: " + content)
-                    console.log(content.split("\\n"))
-                    console.log(content.split("¥n"))
-                    return content.split('\\n').map((line, index, array) => {
-                      console.log("line: " + line)
-                      return(
-                      <span key={index}>
-                        {line}
-                        {index < array.length - 1 && <br />}
-                      </span>
-                    )});
-                  }
-                  if (Array.isArray(content)) {
-                    return content.map((item, index) => (
-                      <span key={index}>{processLineBreaks(item)}</span>
-                    ));
-                  }
-                  return content;
-                };
-                
-                return (
-                  <td className="markdown-table-cell" {...props}>
-                    {processLineBreaks(children)}
-                  </td>
-                );
-              }
-            }}
-          >
-            {markdownContent}
-          </ReactMarkdown>
+      {metadata?.sections && metadata.sections.length > 0 ? (
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          type="card"
+          style={{ 
+            height: 'calc(100vh - 300px)',
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+          items={metadata.sections.map((section, index) => ({
+            key: index.toString(),
+            label: section.title || `セクション ${index + 1}`,
+            children: (
+              <div style={{ 
+                height: 'calc(100vh - 400px)',
+                overflowY: 'auto',
+                padding: '20px',
+                border: '1px solid #d9d9d9',
+                borderRadius: '6px',
+                backgroundColor: '#fff'
+              }}>
+                <div className="markdown-content">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      table: (props) => (
+                        <table className="markdown-table" {...props} />
+                      ),
+                      th: (props) => (
+                        <th className="markdown-table-header" {...props} />
+                      ),
+                      td: ({ children, ...props }) => {
+                        // テキスト内の改行を<br>タグに変換
+                        const processLineBreaks = (content: React.ReactNode): React.ReactNode => {
+                          if (typeof content === 'string') {
+                            return content.split('\\n').map((line, index, array) => (
+                              <span key={index}>
+                                {line}
+                                {index < array.length - 1 && <br />}
+                              </span>
+                            ));
+                          }
+                          if (Array.isArray(content)) {
+                            return content.map((item, index) => (
+                              <span key={index}>{processLineBreaks(item)}</span>
+                            ));
+                          }
+                          return content;
+                        };
+                        
+                        return (
+                          <td className="markdown-table-cell" {...props}>
+                            {processLineBreaks(children)}
+                          </td>
+                        );
+                      }
+                    }}
+                  >
+                    {section.content}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )
+          }))}
+        />
+      ) : (
+        <div style={{ 
+          width: '100%',
+          height: 'calc(100vh - 300px)',
+          overflowY: 'auto',
+          padding: '20px',
+          border: '1px solid #d9d9d9',
+          borderRadius: '6px',
+          backgroundColor: '#fff',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <Alert
+            message="コンテンツなし"
+            description="このドキュメントには表示可能なセクションがありません"
+            type="info"
+            showIcon
+          />
         </div>
-      </div>
+      )}
     </div>
   );
 };
