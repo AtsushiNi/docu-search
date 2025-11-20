@@ -76,15 +76,18 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results }) => {
                   }
                 />
                 <div className="mt-4">
-                  {result.highlight?.content ? (
+                  {result.highlight?.['sections.content'] || result.highlight?.['sections.title'] ? (
                     <div 
                       dangerouslySetInnerHTML={{ 
-                        __html: result.highlight.content.join(' ... ').replace(/\s\|/g, "") 
+                        __html: [
+                          ...(result.highlight?.['sections.title'] || []),
+                          ...(result.highlight?.['sections.content'] || [])
+                        ].join(' ... ').replace(/\s\|/g, "") 
                       }} 
                     />
                   ) : (
                     <div className="text-gray-700">
-                      {result._source.content.substring(0, 200)}...
+                      {result._source.sections?.[0]?.content?.substring(0, 200) || '内容がありません'}...
                     </div>
                   )}
                 </div>

@@ -71,7 +71,7 @@ export const getDocument = async (documentId: string, includeContent: boolean = 
       updated_at: document.updated_at,
       url: document.url,
       pdf_name: document.pdf_name || null,
-      content: includeContent ? document.content : undefined
+      sections: includeContent ? document.sections : undefined
     };
   } catch (error) {
     console.error('Error getting document:', error);

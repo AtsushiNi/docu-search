@@ -4,13 +4,17 @@ export interface SearchResult {
   _id: string;
   _source: {
     name: string;
-    content: string;
     url: string;
     updated_at: string;
     pdf_name?: string;
+    sections: Array<{
+      title: string;
+      content: string;
+    }>;
   };
   highlight?: {
-    content: string[];
+    'sections.title'?: string[];
+    'sections.content'?: string[];
   };
 }
 
