@@ -7,6 +7,8 @@ import { Card, Spin, Alert, Tabs } from 'antd';
 import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import { Button } from 'antd';
 
+const API_BASE_URL = 'http://localhost:8000';
+
 interface MarkdownViewerProps {
   documentId: string;
 }
@@ -17,6 +19,7 @@ interface DocumentMetadata {
   updated_at: string;
   url: string;
   pdf_name?: string | null;
+  file_path?: string | null;
   sections?: Array<{
     title?: string;
     content: string;
@@ -48,6 +51,16 @@ const MarkdownViewer = ({ documentId }: MarkdownViewerProps) => {
     
     fetchDocumentContent();
   }, [documentId]);
+
+  const handleDownload = () => {
+    if (metadata?.file_path) {
+      // 保存されたファイルをダウンロード
+      window.open(`${API_BASE_URL}/file/${metadata.file_path}`, '_blank');
+    } else {
+      // 元のURLを開く
+      window.open(metadata?.url);
+    }
+  };
 
   if (loading) {
     return (
@@ -98,7 +111,7 @@ const MarkdownViewer = ({ documentId }: MarkdownViewerProps) => {
               </Button>
               <Button 
                 icon={<DownloadOutlined />}
-                onClick={() => window.open(metadata.url)}
+                onClick={handleDownload}
               >
                 ダウンロード
               </Button>

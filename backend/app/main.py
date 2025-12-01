@@ -125,6 +125,57 @@ async def get_pdf(filename: str):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(file_path, media_type="application/pdf")
 
+@app.get("/file/{filename}")
+async def get_file(filename: str):
+    """保存されたファイルを取得"""
+    file_path = f"/var/lib/file_storage/{filename}"
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    # ファイルのMIMEタイプを判定
+    import mimetypes
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type:
+        mime_type = "application/octet-stream"
+    
+    # ファイル名を検索
+    es_service = ESService()
+    search_query = {
+        "query": {
+            "match_phrase": {
+                "file_path": filename
+            }
+        }
+    }
+    
+    try:
+        result = es_service.es.search(index=es_service.index_name, body=search_query)
+        original_filename = filename  # デフォルトはハッシュ化されたファイル名
+        
+        if result["hits"]["total"]["value"] > 0:
+            doc = result["hits"]["hits"][0]["_source"]
+            # nameプロパティを使用（元のファイル名が保存されている）
+            original_filename = doc.get("name", filename)
+        
+        # ファイル名を安全な形式にエンコード
+        import urllib.parse
+        encoded_filename = urllib.parse.quote(original_filename)
+        
+        # Content-Dispositionヘッダーを明示的に設定
+        headers = {
+            "Content-Disposition": f"attachment; filename=\"{encoded_filename}\""
+        }
+        
+        return FileResponse(
+            path=file_path,
+            media_type=mime_type,
+            headers=headers
+        )
+    except Exception as e:
+        logger.error(f"Failed to get original filename for {filename}: {str(e)}")
+        # エラー時はFileResponseで返す
+        return FileResponse(file_path, media_type=mime_type)
+
 @app.get("/jobs/queue/stats")
 async def get_queue_stats_endpoint():
     """

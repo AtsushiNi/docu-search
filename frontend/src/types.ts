@@ -7,6 +7,7 @@ export interface SearchResult {
     url: string;
     updated_at: string;
     pdf_name?: string;
+    file_path?: string;
     sections: Array<{
       title: string;
       content: string;
