@@ -71,10 +71,23 @@ export const getDocument = async (documentId: string, includeContent: boolean = 
       updated_at: document.updated_at,
       url: document.url,
       pdf_name: document.pdf_name || null,
+      file_path: document.file_path || null,
       sections: includeContent ? document.sections : undefined
     };
   } catch (error) {
     console.error('Error getting document:', error);
+    throw error;
+  }
+};
+
+export const getFile = async (filename: string) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/file/${filename}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting file:', error);
     throw error;
   }
 };

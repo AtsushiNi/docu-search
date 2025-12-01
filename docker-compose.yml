@@ -13,6 +13,7 @@ services:
     volumes:
       - ./backend:/app
       - pdf_storage:/var/lib/pdf_storage
+      - file_storage:/var/lib/file_storage
 
   frontend:
     build: ./frontend
@@ -99,6 +100,7 @@ services:
     volumes:
       - ./backend:/app
       - pdf_storage:/var/lib/pdf_storage
+      - file_storage:/var/lib/file_storage
 
 volumes:
   es_data:
@@ -106,4 +108,5 @@ volumes:
   subversion_access:
   svn_home:
   pdf_storage:
+  file_storage:
   redis_data:

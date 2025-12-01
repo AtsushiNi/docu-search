@@ -16,14 +16,16 @@ SVNに依存しないファイル操作機能を提供
 
 def process_file(
     file_path: str,
-    file_url: str
+    file_url: str,
+    stored_file_path: str = None
 ) -> bool:
     """
     ファイル処理を実行してElasticsearchに保存
     
     Args:
-        file_path: 処理するファイルのパス
+        file_path: 処理するファイルのパス（一時ファイル）
         file_url: ファイルのURL（ドキュメントID生成用）
+        stored_file_path: 保存されたファイルのパス（オプション）
     
     Returns:
         bool: 処理成功可否
@@ -47,12 +49,18 @@ def process_file(
         doc_id = url_to_id(file_url)
         file_name = file_url.split('/')[-1]
         
+        # 保存されたファイルパスがあればDBに保存
+        saved_file_name = None
+        if stored_file_path and os.path.exists(stored_file_path):
+            saved_file_name = os.path.basename(stored_file_path)
+        
         ESService().save_document(
             doc_id,
             file_url,
             file_name,
             sections,
-            pdf_name=None
+            pdf_name=None,
+            file_path=saved_file_name
         )
         
         # PDF変換が必要な場合は別キューで処理

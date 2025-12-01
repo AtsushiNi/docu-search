@@ -9,6 +9,8 @@ import { EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
+const API_BASE_URL = 'http://localhost:8000';
+
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url,
@@ -23,6 +25,7 @@ interface DocumentMetadata {
   updated_at: string;
   url: string;
   pdf_name?: string | null;
+  file_path?: string | null;
 }
 
 const PDFViewer = ({ documentId }: { documentId: string }) => {
@@ -84,6 +87,16 @@ const PDFViewer = ({ documentId }: { documentId: string }) => {
     };
   }, [documentId]);
 
+  const handleDownload = () => {
+    if (metadata?.file_path) {
+      // 保存されたファイルをダウンロード
+      window.open(`${API_BASE_URL}/file/${metadata.file_path}`, '_blank');
+    } else {
+      // 元のURLを開く
+      window.open(metadata?.url);
+    }
+  };
+
   function onDocumentLoadSuccess({ numPages: nextNumPages }: PDFDocumentProxy): void {
     setNumPages(nextNumPages);
   }
@@ -105,7 +118,7 @@ const PDFViewer = ({ documentId }: { documentId: string }) => {
               </Button>
               <Button 
                 icon={<DownloadOutlined />}
-                onClick={() => window.open(metadata.url)}
+                onClick={handleDownload}
               >
                 ダウンロード
               </Button>

@@ -5,6 +5,8 @@ import { DownloadOutlined, EyeOutlined } from '@ant-design/icons';
 import { Link, Element } from 'react-scroll';
 import './SearchResults.css';
 
+const API_BASE_URL = 'http://localhost:8000';
+
 interface SearchResultsProps {
   results: SearchResult[];
 }
@@ -56,7 +58,15 @@ const SearchResults: React.FC<SearchResultsProps> = ({ results }) => {
                           icon={<DownloadOutlined/>} 
                           color='default' 
                           variant='filled'
-                          onClick={() => window.open(result._source.url)}
+                          onClick={() => {
+                            if (result._source.file_path) {
+                              // 保存されたファイルをダウンロード
+                              window.open(`${API_BASE_URL}/file/${result._source.file_path}`, '_blank');
+                            } else {
+                              // 元のURLを開く
+                              window.open(result._source.url);
+                            }
+                          }}
                         >
                           ダウンロード
                         </Button>

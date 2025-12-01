@@ -83,6 +83,7 @@ class ESService:
                             },
                             "updated_at": { "type": "date" },
                             "pdf_name": { "type": "text" },
+                            "file_path": { "type": "text" },
                             "sort_name": {
                                 "type": "text",
                                 "fields": {
@@ -103,7 +104,8 @@ class ESService:
                 raise
 
     def save_document(self, doc_id: str, url: str, file_name: str, 
-                                  sections: list, pdf_name: str = None) -> None:
+                                  sections: list, pdf_name: str = None, 
+                                  file_path: str = None) -> None:
         """セクション分割済みのドキュメントを保存（同じURLの場合は更新）"""
         doc_body = {
             "url": url,
@@ -117,6 +119,12 @@ class ESService:
         if pdf_name:
             doc_body.update({
                 "pdf_name": pdf_name
+            })
+        
+        # ファイルパスがあれば追加
+        if file_path:
+            doc_body.update({
+                "file_path": file_path
             })
         
         # 同じURLのドキュメントが存在するか確認
@@ -272,7 +280,7 @@ class ESService:
             doc_id: ドキュメントID
             include_content: コンテンツを含めるかどうか
         """
-        source_fields = ["url", "name", "updated_at", "pdf_name", "sections"]
+        source_fields = ["url", "name", "updated_at", "pdf_name", "file_path", "sections"]
         if include_content:
             source_fields.append("sections")
             
