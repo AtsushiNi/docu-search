@@ -18,9 +18,11 @@ services:
     build: ./frontend
     restart: always
     ports:
-      - "5173:80"
+      - "5173:5173"
     depends_on:
       - backend
+    volumes:
+      - ./frontend/src:/app/src
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.9.0

@@ -1,22 +1,18 @@
-# Build stage
-FROM node:20-alpine AS builder
+# Development stage
+FROM node:20-alpine
+
 WORKDIR /app
+
+# Copy package files and essential config files
 COPY package.json pnpm-lock.yaml ./
+COPY vite.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json ./
+COPY index.html ./
+
+# Enable corepack and install dependencies
 RUN corepack enable && pnpm install --frozen-lockfile --prod=false
-COPY . .
-RUN pnpm run build
 
-# Production stage
-FROM nginx:alpine AS production
+# Expose port for development server
+EXPOSE 5173
 
-# Copy built application from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Expose port
-EXPOSE 80
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start development server with host binding for external access
+CMD ["pnpm", "dev", "--host"]
