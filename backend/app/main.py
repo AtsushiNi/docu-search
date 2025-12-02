@@ -56,7 +56,7 @@ async def root():
     return {"message": "Welcome to FastAPI + Elasticsearch"}
 
 @app.get("/search")
-async def search(query: str, search_type: str = "exact", url_query: str = None):
+def search(query: str, search_type: str = "exact", url_query: str = None):
     """ドキュメント検索"""
     logger.info(f"Search request received - query: {query}, search_type: {search_type}, url_query: {url_query}")
     es_service = ESService()
@@ -75,10 +75,10 @@ async def get_files():
     """登録されている全ドキュメントのURLとIDリストを取得"""
     logger.info("File list request received")
     es_service = ESService()
-    return es_service.get_document_list()
+    return await es_service.get_document_list()
 
 @app.delete("/files")
-async def delete_files(file_ids: List[str] = Body(..., embed=True)):
+def delete_files(file_ids: List[str] = Body(..., embed=True)):
     """指定されたIDのファイルを削除
     
     Args:
@@ -102,7 +102,7 @@ async def delete_files(file_ids: List[str] = Body(..., embed=True)):
     return {"message": f"Successfully deleted {result['deleted']} files", "deleted": result["deleted"]}
 
 @app.get("/documents/{id}")
-async def get_document(id: str, include_content: bool = False):
+def get_document(id: str, include_content: bool = False):
     """指定されたIDのドキュメントを取得
     
     Args:

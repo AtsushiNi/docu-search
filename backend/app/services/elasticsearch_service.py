@@ -1,4 +1,4 @@
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, AsyncElasticsearch
 from typing import Dict, Any
 from pydantic_settings import BaseSettings
 import datetime
@@ -15,10 +15,17 @@ class ESService:
     """Elasticsearchサービスクラス"""
     def __init__(self):
         settings = ElasticsearchSettings()
+        # 同期クライアント
         self.es = Elasticsearch(
             hosts=[f"http://{settings.es_host}:{settings.es_port}"],
             verify_certs=settings.verify_certs,
-            timeout=settings.timeout,  # 接続タイムアウト（秒）
+            timeout=settings.timeout,
+        )
+        # 非同期クライアント
+        self.async_es = AsyncElasticsearch(
+            hosts=[f"http://{settings.es_host}:{settings.es_port}"],
+            verify_certs=settings.verify_certs,
+            timeout=settings.timeout,
         )
         self.index_name = "documents"
         self._initialize_index()
@@ -247,9 +254,9 @@ class ESService:
             body=search_body
         )
 
-    def get_document_list(self) -> Dict[str, Any]:
+    async def get_document_list(self) -> Dict[str, Any]:
         """登録されている全ドキュメントのURLとIDリストを取得"""
-        result = self.es.search(
+        result = await self.async_es.search(
             index=self.index_name,
             body={
                 "_source": ["url"],
