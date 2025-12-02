@@ -7,3 +7,4 @@ markitdown[docx,pptx,xlsx,xls]
 redis==5.0.1
 rq==1.15.1
 python-multipart==0.0.6
+aiohttp==3.13.2
